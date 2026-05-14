@@ -10,17 +10,15 @@ export interface AcademicData {
 }
 
 export interface FinancialData {
-  rent: number;
-  food: number;
-  transport: number;
-  study: number;
   income: number;
+  expenses: { id: string; name: string; amount: number; category: string }[];
 }
 
 export interface HealthData {
   weight: number;
   activityLevel: 'low' | 'medium' | 'high';
   mealsToday: string[];
+  conditions: { id: string; name: string; severity: string }[];
 }
 
 export interface WellbeingData {

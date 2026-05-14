@@ -3,7 +3,27 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import cookieParser from 'cookie-parser';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc, arrayUnion, setDoc } from 'firebase/firestore';
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    operationType,
+    path,
+    serverSide: true
+  };
+  console.error('Firestore Server Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -85,14 +105,18 @@ async function startServer() {
         
         // Persist to Firestore
         const userRef = doc(db, 'users', userId);
-        await setDoc(userRef, {
-          webauthnCredentials: arrayUnion({
-            id,
-            publicKey: Buffer.from(publicKey).toString('base64'),
-            counter,
-            transports: (body as RegistrationResponseJSON).response.transports,
-          })
-        }, { merge: true });
+        try {
+          await setDoc(userRef, {
+            webauthnCredentials: arrayUnion({
+              id,
+              publicKey: Buffer.from(publicKey).toString('base64'),
+              counter,
+              transports: (body as RegistrationResponseJSON).response.transports,
+            })
+          }, { merge: true });
+        } catch (error) {
+          handleFirestoreError(error, OperationType.WRITE, `users/${userId}`);
+        }
 
         delete challenges[userId];
         return res.json({ verified: true });
@@ -110,8 +134,14 @@ async function startServer() {
     if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
     // Fetch credentials from Firestore
-    const userSnap = await getDoc(doc(db, 'users', String(userId)));
-    if (!userSnap.exists()) return res.status(404).json({ error: 'User not found' });
+    let userSnap;
+    try {
+      userSnap = await getDoc(doc(db, 'users', String(userId)));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, `users/${userId}`);
+    }
+
+    if (!userSnap || !userSnap.exists()) return res.status(404).json({ error: 'User not found' });
     
     const userCredentials = userSnap.data().webauthnCredentials || [];
     if (userCredentials.length === 0) return res.status(404).json({ error: 'No credentials for user' });
@@ -137,8 +167,14 @@ async function startServer() {
     const { userId, body } = req.body;
     const expectedChallenge = challenges[userId];
     
-    const userSnap = await getDoc(doc(db, 'users', String(userId)));
-    const userCredentials = userSnap.data()?.webauthnCredentials || [];
+    let userSnap;
+    try {
+      userSnap = await getDoc(doc(db, 'users', String(userId)));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, `users/${userId}`);
+    }
+
+    const userCredentials = userSnap?.data()?.webauthnCredentials || [];
 
     if (!expectedChallenge || userCredentials.length === 0) {
       return res.status(400).json({ error: 'Session mismatch' });

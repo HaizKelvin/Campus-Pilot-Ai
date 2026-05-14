@@ -43,9 +43,21 @@
         "content": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" }
       }
+    },
+    "SystemHealth": {
+      "title": "System Health",
+      "description": "Used for connectivity verification",
+      "type": "object",
+      "properties": {
+        "status": { "type": "string" }
+      }
     }
   },
   "firestore": {
+    "/system/health": {
+      "schema": "SystemHealth",
+      "description": "A static document to check database connectivity"
+    },
     "/users/{userId}": {
       "schema": "User",
       "description": "All student telemetry data indexed by UID"

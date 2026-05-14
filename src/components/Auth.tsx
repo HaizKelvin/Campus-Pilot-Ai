@@ -363,7 +363,7 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
               </div>
             </div>
 
-            <form onSubmit={handleEmailAuth} className="space-y-4 md:space-y-6">
+            <form onSubmit={handleEmailAuth} className="space-y-4 md:space-y-5">
               <div className="space-y-1 text-left">
                 <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider ml-1">Terminal Email</label>
                 <input 
@@ -372,7 +372,7 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
                   placeholder="name@university.edu"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-slate-950/50 border border-white/10 p-4 rounded-2xl outline-none focus:ring-1 focus:ring-blue-500 text-sm md:text-base transition-all"
+                  className="w-full bg-slate-950/50 border border-white/10 p-3 md:p-4 rounded-2xl outline-none focus:ring-1 focus:ring-blue-500 text-sm transition-all"
                 />
               </div>
               <div className="space-y-1 text-left relative">
@@ -384,14 +384,14 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-slate-950/50 border border-white/10 p-4 pr-12 rounded-2xl outline-none focus:ring-1 focus:ring-blue-500 text-sm md:text-base transition-all"
+                    className="w-full bg-slate-950/50 border border-white/10 p-3 md:p-4 pr-12 rounded-2xl outline-none focus:ring-1 focus:ring-blue-500 text-sm transition-all"
                   />
                   <button 
                     type="button" 
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
                   >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
                 

@@ -35,16 +35,17 @@ const INITIAL_STATE: AppState = {
     gpa: 3.5,
   },
   finance: {
-    rent: 0,
-    food: 0,
-    transport: 0,
-    study: 0,
-    income: 0,
+    income: 2400,
+    expenses: [
+      { id: '1', name: 'Academic Housing', amount: 850, category: 'Housing' },
+      { id: '2', name: 'Meal Plan', amount: 400, category: 'Food' },
+    ],
   },
   health: {
     weight: 70,
     activityLevel: 'medium',
     mealsToday: [],
+    conditions: [],
   },
   wellbeing: {
     stress: 'Medium',
@@ -406,8 +407,10 @@ export default function App() {
                         <div className="text-[10px] font-mono text-purple-400 bg-purple-500/5 px-2 py-0.5 rounded border border-purple-500/20">SOLVENCY: HIGH</div>
                       </div>
                       <div>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 font-mono">NET DISPOSABLE</p>
-                        <h3 className="text-2xl md:text-3xl font-bold text-slate-100">${state.finance.income}</h3>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 font-mono">NET DISPOSABLE (MONTHLY)</p>
+                        <h3 className="text-2xl md:text-3xl font-bold text-slate-100">
+                          ${state.finance.income - state.finance.expenses.reduce((acc, curr) => acc + curr.amount, 0)}
+                        </h3>
                       </div>
                       <div className="flex gap-1 h-8 items-end">
                         {[40, 70, 45, 90, 60, 80].map((h, i) => (
@@ -471,23 +474,23 @@ export default function App() {
               {activeTab === 'academics' && (
                 <motion.div 
                   key="academics"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="space-y-6"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  className="space-y-4 md:space-y-6"
                 >
-                  <section className="glass p-6">
+                  <section className="glass p-4 md:p-6">
                     <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                      <h3 className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
                         <BookOpen size={16} className="text-blue-400" />
                         🎓 Courses & Telemetry
                       </h3>
-                      <span className="status-pill bg-green-500/20 text-green-400 font-mono">GPA: {state.academics.gpa}</span>
+                      <span className="status-pill bg-green-500/20 text-green-400 font-mono text-[10px]">GPA: {state.academics.gpa}</span>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                      <div className="bg-white/5 p-4 rounded-xl border border-white/5 group transition-all hover:border-white/10">
-                        <label className="block text-[10px] font-mono uppercase text-slate-500 mb-2">Academic Performance (GPA)</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                      <div className="bg-white/5 p-4 rounded-xl border border-white/5 group transition-all hover:border-blue-500/30">
+                        <label className="block text-[10px] font-mono uppercase text-slate-500 mb-2">Current GPA</label>
                         <input 
                           type="number" 
                           step="0.01"
@@ -496,26 +499,27 @@ export default function App() {
                             ...state,
                             academics: { ...state.academics, gpa: parseFloat(e.target.value) || 0 }
                           })}
-                          className="w-full bg-slate-950/50 border border-white/10 p-3 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-slate-100 font-bold"
+                          className="w-full bg-slate-950/50 border border-white/10 p-3 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-slate-100 font-bold text-lg"
                         />
                       </div>
                       <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                         <label className="block text-[10px] font-mono uppercase text-slate-500 mb-2">Subject Name</label>
+                         <label className="block text-[10px] font-mono uppercase text-slate-500 mb-2">Academic Primary</label>
                           <input 
                             type="text"
-                            value={state.profile.name}
+                            value={state.profile.university}
                             onChange={(e) => setState({
                               ...state,
-                              profile: { ...state.profile, name: e.target.value }
+                              profile: { ...state.profile, university: e.target.value }
                             })}
-                            className="w-full bg-slate-950/50 border border-white/10 p-3 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-slate-100"
+                            className="w-full bg-slate-950/50 border border-white/10 p-3 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-slate-100 text-sm"
+                            placeholder="University"
                           />
                       </div>
                     </div>
                     
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Active Modules</label>
+                        <label className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Module Manifest</label>
                         <button 
                           onClick={() => {
                             const newCourse = { id: Math.random().toString(36).substr(2, 9), name: '', credit: 0, grade: '' };
@@ -524,54 +528,56 @@ export default function App() {
                               academics: { ...state.academics, courses: [...state.academics.courses, newCourse] }
                             });
                           }}
-                          className="text-[10px] bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white px-3 py-1.5 rounded-lg flex items-center gap-2 border border-blue-500/20 transition-all uppercase font-bold"
+                          className="text-[10px] bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-xl flex items-center gap-2 border border-blue-500/20 transition-all uppercase font-bold active:scale-95"
                         >
                           <Plus size={12} /> Add Module
                         </button>
                       </div>
-                      {state.academics.courses.length === 0 && (
-                        <div className="p-8 border border-dashed border-white/5 rounded-xl text-center">
-                          <p className="text-xs text-slate-500 italic">No module data detected.</p>
-                        </div>
-                      )}
-                      {state.academics.courses.map((course, idx) => (
-                        <div key={course.id} className="flex gap-4 items-center bg-white/5 p-3 rounded-xl border border-white/5 hover:border-white/20 transition-all">
-                          <div className="flex-1">
-                            <input 
-                              placeholder="Module ID / Name"
-                              value={course.name}
-                              onChange={(e) => {
-                                const newCourses = [...state.academics.courses];
-                                newCourses[idx].name = e.target.value;
+                      <div className="grid grid-cols-1 gap-2">
+                        {state.academics.courses.length === 0 && (
+                          <div className="p-8 border border-dashed border-white/5 rounded-2xl text-center bg-white/[0.01]">
+                            <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest">No active modules in terminal</p>
+                          </div>
+                        )}
+                        {state.academics.courses.map((course, idx) => (
+                          <div key={course.id} className="flex gap-3 items-center bg-white/5 p-3 rounded-xl border border-white/5 hover:border-blue-500/20 transition-all group">
+                            <div className="flex-1">
+                              <input 
+                                placeholder="Module Name"
+                                value={course.name}
+                                onChange={(e) => {
+                                  const newCourses = [...state.academics.courses];
+                                  newCourses[idx].name = e.target.value;
+                                  setState({ ...state, academics: { ...state.academics, courses: newCourses } });
+                                }}
+                                className="bg-transparent border-none w-full p-1 outline-none text-sm font-medium focus:text-blue-400 transition-colors"
+                              />
+                            </div>
+                            <div className="w-16">
+                               <input 
+                                type="number"
+                                placeholder="CR"
+                                value={course.credit}
+                                onChange={(e) => {
+                                  const newCourses = [...state.academics.courses];
+                                  newCourses[idx].credit = parseInt(e.target.value) || 0;
+                                  setState({ ...state, academics: { ...state.academics, courses: newCourses } });
+                                }}
+                                className="bg-slate-950/50 border border-white/10 rounded-lg px-2 py-1.5 w-full text-xs text-center font-mono focus:border-blue-500/50 outline-none"
+                              />
+                            </div>
+                            <button 
+                              onClick={() => {
+                                const newCourses = state.academics.courses.filter(c => c.id !== course.id);
                                 setState({ ...state, academics: { ...state.academics, courses: newCourses } });
                               }}
-                              className="bg-transparent border-none w-full p-1 outline-none text-sm font-medium"
-                            />
+                              className="text-slate-600 hover:text-red-400 p-2 rounded-lg hover:bg-red-400/10 transition-all"
+                            >
+                              <Trash2 size={16} />
+                            </button>
                           </div>
-                          <div className="w-20">
-                             <input 
-                              type="number"
-                              placeholder="CR"
-                              value={course.credit}
-                              onChange={(e) => {
-                                const newCourses = [...state.academics.courses];
-                                newCourses[idx].credit = parseInt(e.target.value) || 0;
-                                setState({ ...state, academics: { ...state.academics, courses: newCourses } });
-                              }}
-                              className="bg-slate-950/50 border border-white/10 rounded px-2 py-1 w-full text-xs text-center font-mono"
-                            />
-                          </div>
-                          <button 
-                            onClick={() => {
-                              const newCourses = state.academics.courses.filter(c => c.id !== course.id);
-                              setState({ ...state, academics: { ...state.academics, courses: newCourses } });
-                            }}
-                            className="text-slate-600 hover:text-red-400 p-1 rounded-md hover:bg-red-400/10 transition-colors"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   </section>
 
@@ -636,76 +642,132 @@ export default function App() {
               {activeTab === 'finance' && (
                 <motion.div 
                   key="finance"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="space-y-6"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  className="space-y-4 md:space-y-6"
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="glass p-6">
-                      <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-8">💰 Liquidity Management</h3>
-                      <div className="space-y-5">
-                        {['Rent', 'Food', 'Transport', 'Study'].map((cat) => (
-                          <div key={cat} className="flex items-center justify-between group">
-                            <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">{cat}</span>
-                            <div className="flex items-center gap-2">
-                               <span className="text-slate-600 font-mono text-xs">$</span>
-                               <input 
-                                  type="number" 
-                                  value={state.finance[cat.toLowerCase() as keyof typeof state.finance] || 0}
-                                  onChange={(e) => setState({
-                                    ...state,
-                                    finance: { ...state.finance, [cat.toLowerCase()]: parseFloat(e.target.value) || 0 }
-                                  })}
-                                  className="w-28 bg-slate-950/50 border border-white/10 p-2 rounded-lg text-right text-sm outline-none focus:ring-1 focus:ring-green-500 font-mono font-bold"
-                               />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <section className="glass p-5 md:p-6 border-purple-500/10">
+                      <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+                        <DollarSign size={16} className="text-purple-400" />
+                        Inflow Configuration
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="bg-white/5 p-4 rounded-2xl border border-white/5 group transition-all hover:border-purple-500/30">
+                          <label className="block text-[10px] font-mono uppercase text-slate-500 mb-2">Monthly Primary Income</label>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl font-bold text-slate-500">$</span>
+                            <input 
+                              type="number"
+                              value={state.finance.income}
+                              onChange={(e) => setState({...state, finance: {...state.finance, income: parseInt(e.target.value) || 0}})}
+                              className="bg-transparent border-none w-full text-2xl font-bold text-slate-100 outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="glass p-5 md:p-6 border-purple-500/10">
+                      <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                          <Zap size={16} className="text-purple-400" />
+                          Outflow Streams
+                        </h3>
+                        <button 
+                          onClick={() => {
+                            const newExp = { id: Math.random().toString(36).substr(2, 9), name: '', amount: 0, category: 'Other' };
+                            setState({...state, finance: {...state.finance, expenses: [...state.finance.expenses, newExp]}});
+                          }}
+                          className="p-2 bg-purple-500/10 text-purple-400 rounded-lg hover:bg-purple-500 hover:text-white transition-all active:scale-95"
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                        {state.finance.expenses.length === 0 && (
+                          <p className="text-center text-[10px] font-mono text-slate-600 py-8 uppercase italic">No active streams</p>
+                        )}
+                        {state.finance.expenses.map((expense, idx) => (
+                          <div key={expense.id} className="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/5 group hover:border-purple-500/30 transition-all">
+                            <input 
+                              placeholder="Label"
+                              value={expense.name}
+                              onChange={(e) => {
+                                const newExp = [...state.finance.expenses];
+                                newExp[idx].name = e.target.value;
+                                setState({...state, finance: {...state.finance, expenses: newExp}});
+                              }}
+                              className="bg-transparent border-none flex-1 text-sm outline-none"
+                            />
+                            <div className="flex items-center gap-1 bg-slate-950/50 rounded-lg px-2 py-1 outline-none">
+                              <span className="text-[10px] text-slate-500 font-mono italic">$</span>
+                              <input 
+                                type="number"
+                                value={expense.amount}
+                                onChange={(e) => {
+                                  const newExp = [...state.finance.expenses];
+                                  newExp[idx].amount = parseInt(e.target.value) || 0;
+                                  setState({...state, finance: {...state.finance, expenses: newExp}});
+                                }}
+                                className="w-12 bg-transparent border-none text-[10px] font-mono outline-none text-right"
+                              />
                             </div>
+                            <button 
+                              onClick={() => {
+                                const newExp = state.finance.expenses.filter(e => e.id !== expense.id);
+                                setState({...state, finance: {...state.finance, expenses: newExp}});
+                              }}
+                              className="text-slate-600 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Trash2 size={14} />
+                            </button>
                           </div>
                         ))}
                       </div>
-                    </div>
-                    
-                    <div className="glass p-6 bg-gradient-to-br from-green-500/5 to-blue-500/5 flex flex-col justify-between border-green-500/20">
-                      <div>
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2 font-mono">FINANCIAL SOLVENCY INDEX</h3>
-                        <div className={cn(
-                          "text-5xl font-bold tracking-tighter transition-colors",
-                          (state.finance.income - (state.finance.rent + state.finance.food + state.finance.transport + state.finance.study)) >= 0 ? "text-green-400" : "text-red-400"
-                        )}>
-                          ${state.finance.income - (state.finance.rent + state.finance.food + state.finance.transport + state.finance.study)}
-                          <span className="text-[10px] text-slate-500 ml-3 font-mono uppercase tracking-widest">Net Surplus</span>
-                        </div>
-                      </div>
-                      <div className="mt-12 bg-white/5 p-4 rounded-xl border border-white/5">
-                         <label className="block text-[10px] font-mono uppercase text-slate-500 mb-2">Total Periodic Revenue</label>
-                         <div className="flex items-center gap-2">
-                           <span className="text-slate-600 font-mono text-xs">$</span>
-                           <input 
-                              type="number"
-                              value={state.finance.income}
-                              onChange={(e) => setState({
-                                ...state,
-                                finance: { ...state.finance, income: parseFloat(e.target.value) || 0 }
-                              })}
-                              className="w-full bg-slate-950/50 border border-white/10 p-4 rounded-lg outline-none focus:ring-1 focus:ring-green-500 text-slate-100 font-bold font-mono"
-                              placeholder="Monthly total"
-                           />
-                         </div>
-                      </div>
-                    </div>
+                    </section>
                   </div>
+
+                  <section className="glass p-5 md:p-8 bg-gradient-to-br from-purple-600/[0.03] to-slate-900 border-purple-500/10">
+                     <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4">
+                        <div>
+                           <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">Solvency Forecast</p>
+                           <h4 className="text-3xl font-bold text-white mb-2">
+                             ${state.finance.income - state.finance.expenses.reduce((acc, curr) => acc + curr.amount, 0)}
+                             <span className="text-sm font-normal text-slate-500 ml-2">/ month</span>
+                           </h4>
+                           <div className="flex gap-2">
+                             <span className="px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-bold rounded uppercase border border-green-500/20">Operational</span>
+                             <span className="px-2 py-0.5 bg-white/5 text-slate-500 text-[8px] font-bold rounded uppercase border border-white/10">Cycle 2026</span>
+                           </div>
+                        </div>
+                        <div className="flex-1 max-w-xs h-12 flex items-end gap-1 px-4">
+                           {[20, 45, 30, 60, 40, 75, 55, 90, 65, 80].map((h, i) => (
+                             <div 
+                               key={i} 
+                               className="flex-1 bg-purple-500/20 rounded-t-sm group relative"
+                               style={{ height: `${h}%` }}
+                             >
+                               <div className="absolute inset-0 bg-purple-500 opacity-0 group-hover:opacity-100 transition-opacity rounded-t-sm" />
+                             </div>
+                           ))}
+                        </div>
+                     </div>
+                  </section>
                 </motion.div>
               )}
 
               {activeTab === 'health' && (
                 <motion.div 
                   key="health"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="space-y-6"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  className="space-y-4 md:space-y-6"
                 >
-                   <div className="glass p-8">
+                   <div className="glass p-5 md:p-8">
                       <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-4">
                            <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20">
@@ -716,14 +778,14 @@ export default function App() {
                               <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Physiological Data Stream</p>
                            </div>
                         </div>
-                        <span className="status-pill bg-blue-500/20 text-blue-400 px-3">Tracking Online</span>
+                        <span className="status-pill bg-blue-500/20 text-blue-400 px-3 text-[10px] md:text-xs">Tracking Online</span>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                         <div className="space-y-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
+                         <div className="space-y-6 md:space-y-8">
                             <div>
                                <label className="block text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-4">Metabolic Activity Index</label>
-                               <div className="flex gap-2 p-1.5 bg-white/5 rounded-2xl border border-white/5">
+                               <div className="flex gap-2 p-1 bg-white/5 rounded-2xl border border-white/5">
                                   {['low', 'medium', 'high'].map(level => (
                                     <button
                                       key={level}
@@ -740,22 +802,67 @@ export default function App() {
                                   ))}
                                </div>
                             </div>
-                            <div>
+                            <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
                                <label className="block text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-2">Current Mass (KG)</label>
                                <input 
                                   type="number"
                                   value={state.health.weight}
                                   onChange={(e) => setState({...state, health: {...state.health, weight: parseInt(e.target.value) || 0}})}
-                                  className="w-full bg-slate-950/50 border border-white/10 p-4 rounded-xl outline-none focus:ring-1 focus:ring-blue-500 font-mono font-bold"
+                                  className="w-full bg-slate-950/50 border border-white/10 p-4 rounded-xl outline-none focus:ring-1 focus:ring-blue-500 font-mono font-bold text-xl"
                                />
                             </div>
+
+                            <section className="space-y-4">
+                               <div className="flex justify-between items-center">
+                                  <label className="block text-[10px] font-mono text-slate-500 uppercase tracking-widest">Inherent Conditions</label>
+                                  <button 
+                                    onClick={() => {
+                                      const newC = { id: Math.random().toString(36).substr(2, 9), name: '', severity: 'Mild' };
+                                      setState({...state, health: {...state.health, conditions: [...state.health.conditions, newC]}});
+                                    }}
+                                    className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all active:scale-95"
+                                  >
+                                    <Plus size={16} />
+                                  </button>
+                               </div>
+                               <div className="space-y-2">
+                                  {state.health.conditions.map((condition, idx) => (
+                                    <div key={condition.id} className="flex gap-2 items-center bg-white/5 p-2 rounded-xl">
+                                      <input 
+                                        placeholder="condition name"
+                                        value={condition.name}
+                                        onChange={(e) => {
+                                          const newC = [...state.health.conditions];
+                                          newC[idx].name = e.target.value;
+                                          setState({...state, health: {...state.health, conditions: newC}});
+                                        }}
+                                        className="bg-transparent border-none flex-1 text-xs outline-none px-2"
+                                      />
+                                      <button 
+                                        onClick={() => {
+                                          const newC = state.health.conditions.filter(c => c.id !== condition.id);
+                                          setState({...state, health: {...state.health, conditions: newC}});
+                                        }}
+                                        className="text-slate-600 hover:text-red-400 p-2"
+                                      >
+                                        <X size={14} />
+                                      </button>
+                                    </div>
+                                  ))}
+                               </div>
+                            </section>
                          </div>
                          
                          <div className="space-y-4">
                             <label className="block text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-2">Nutritional Intake Sequence</label>
                             <div className="space-y-3">
+                               {state.health.mealsToday.length === 0 && (
+                                 <div className="p-8 border border-dashed border-white/5 rounded-2xl text-center bg-white/[0.01]">
+                                    <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest">Waiting for intake data</p>
+                                 </div>
+                               )}
                                {state.health.mealsToday.map((meal, idx) => (
-                                  <div key={idx} className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/5 group">
+                                  <div key={idx} className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/5 group hover:border-blue-500/20 transition-all">
                                      <span className="text-xs font-semibold text-slate-200">{meal}</span>
                                      <button 
                                         onClick={() => {
@@ -763,7 +870,7 @@ export default function App() {
                                           newMeals.splice(idx, 1);
                                           setState({...state, health: {...state.health, mealsToday: newMeals}});
                                         }}
-                                        className="text-slate-600 hover:text-red-400 transition-colors"
+                                        className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all p-1"
                                      >
                                         <X size={16} />
                                      </button>
@@ -772,7 +879,7 @@ export default function App() {
                                <div className="flex gap-2 pt-2">
                                   <input 
                                      id="meal-input"
-                                     placeholder="LOG MEAL..."
+                                     placeholder="LOG MEAL SEQUENCE..."
                                      onKeyDown={(e) => {
                                        if(e.key === 'Enter') {
                                          const val = (e.target as HTMLInputElement).value;
@@ -792,7 +899,7 @@ export default function App() {
                                          input.value = '';
                                       }
                                     }}
-                                    className="p-3 glass bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition-all rounded-xl"
+                                    className="p-3 bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition-all rounded-xl border border-blue-500/20 active:scale-95"
                                   >
                                     <Plus size={20} />
                                   </button>
@@ -807,26 +914,26 @@ export default function App() {
               {activeTab === 'wellbeing' && (
                 <motion.div 
                   key="wellbeing"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-8"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8"
                 >
-                   <div className="glass p-8">
+                   <div className="glass p-5 md:p-8">
                       <h3 className="text-[10px] font-mono uppercase text-slate-500 tracking-widest mb-8 flex items-center gap-2">
                         <Brain size={14} className="text-purple-400" />
                         Psychological Telemetry
                       </h3>
-                      <div className="space-y-10">
+                      <div className="space-y-8 md:space-y-10">
                          <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Focus State Evaluation</label>
+                            <label className="block text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Focus State Evaluation</label>
                             <div className="grid grid-cols-3 gap-3">
                                {['Good', 'Distracted', 'Overloaded'].map(s => (
                                  <button 
                                    key={s}
                                    onClick={() => setState({...state, wellbeing: {...state.wellbeing, focus: s as any}})}
                                    className={cn(
-                                     "py-3 rounded-xl border text-[10px] font-bold uppercase transition-all tracking-wider",
+                                     "py-3 rounded-xl border text-[10px] font-bold uppercase transition-all tracking-wider active:scale-95",
                                      state.wellbeing.focus === s 
                                        ? "bg-blue-500 border-blue-500 text-white shadow-lg shadow-blue-950" 
                                        : "border-white/10 text-slate-500 hover:text-slate-300 hover:bg-white/5"
@@ -839,16 +946,16 @@ export default function App() {
                          </div>
                          
                          <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Cortisol Level (STRESS)</label>
+                            <label className="block text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Cortisol Level (STRESS)</label>
                             <div className="grid grid-cols-3 gap-3">
                                {['Low', 'Medium', 'High'].map(s => (
                                  <button 
                                    key={s}
                                    onClick={() => setState({...state, wellbeing: {...state.wellbeing, stress: s as any}})}
                                    className={cn(
-                                     "py-3 rounded-xl border text-[10px] font-bold uppercase transition-all tracking-wider",
+                                     "py-3 rounded-xl border text-[10px] font-bold uppercase transition-all tracking-wider active:scale-95",
                                      state.wellbeing.stress === s 
-                                       ? "bg-red-500/80 border-red-500 text-white shadow-lg shadow-red-950" 
+                                       ? (s === 'High' ? "bg-red-500 border-red-500 text-white" : s === 'Medium' ? "bg-amber-500 border-amber-500 text-white" : "bg-green-500 border-green-500 text-white")
                                        : "border-white/10 text-slate-500 hover:text-slate-300 hover:bg-white/5"
                                    )}
                                  >
@@ -860,19 +967,19 @@ export default function App() {
                       </div>
                    </div>
                    
-                   <div className="glass p-8 bg-gradient-to-br from-purple-600/10 to-blue-600/10 border-dashed flex flex-col justify-center items-center text-center">
+                   <div className="glass p-5 md:p-8 bg-gradient-to-br from-purple-600/10 to-blue-600/10 border-dashed flex flex-col justify-center items-center text-center">
                       <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
                         <Zap size={32} className="text-blue-400" />
                       </div>
                       <h4 className="text-base font-bold text-slate-100 tracking-tight mb-2">RECOVERY DEPTH</h4>
                       <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-8">Circadian Duration Log</p>
-                      <div className="flex items-center gap-10">
-                         <button onClick={() => setState({...state, wellbeing: {...state.wellbeing, sleepHours: Math.max(0, state.wellbeing.sleepHours - 1)}})} className="w-12 h-12 rounded-2xl border border-white/10 flex items-center justify-center hover:bg-white/5 text-xl font-bold transition-all">-</button>
+                      <div className="flex items-center gap-6 md:gap-10">
+                         <button onClick={() => setState({...state, wellbeing: {...state.wellbeing, sleepHours: Math.max(0, state.wellbeing.sleepHours - 1)}})} className="w-12 h-12 rounded-2xl border border-white/10 flex items-center justify-center hover:bg-white/5 text-xl font-bold transition-all active:scale-90">-</button>
                          <div className="flex flex-col">
-                            <span className="text-7xl font-mono font-bold tracking-tighter text-blue-400">{state.wellbeing.sleepHours}</span>
-                            <span className="text-[10px] font-mono text-slate-600 uppercase font-bold tracking-[0.3em]">HOURS</span>
+                            <span className="text-5xl md:text-7xl font-mono font-bold tracking-tighter text-blue-400">{state.wellbeing.sleepHours}</span>
+                            <span className="text-[8px] md:text-[10px] font-mono text-slate-600 uppercase font-bold tracking-[0.3em]">HOURS</span>
                          </div>
-                         <button onClick={() => setState({...state, wellbeing: {...state.wellbeing, sleepHours: state.wellbeing.sleepHours + 1}})} className="w-12 h-12 rounded-2xl border border-white/10 flex items-center justify-center hover:bg-white/5 text-xl font-bold transition-all">+</button>
+                         <button onClick={() => setState({...state, wellbeing: {...state.wellbeing, sleepHours: state.wellbeing.sleepHours + 1}})} className="w-12 h-12 rounded-2xl border border-white/10 flex items-center justify-center hover:bg-white/5 text-xl font-bold transition-all active:scale-90">+</button>
                       </div>
                    </div>
                 </motion.div>

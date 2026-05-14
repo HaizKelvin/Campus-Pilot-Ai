@@ -11,6 +11,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Health check
+    match /system/health {
+      allow get: if true;
+    }
+
     // User profiles and telemetry
     match /users/{userId} {
       allow get: if isOwner(userId);
