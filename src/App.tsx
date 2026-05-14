@@ -22,6 +22,8 @@ import { Auth } from './components/Auth';
 import { Chatbot } from './components/Chatbot';
 import { DashboardCharts } from './components/DashboardCharts';
 import { FocusMode } from './components/FocusMode';
+import { BiometricVisualizer, PulseLine } from './components/BiometricVisualizer';
+import { KernelLog } from './components/KernelLog';
 import { startRegistration } from '@simplewebauthn/browser';
 
 const INITIAL_STATE: AppState = {
@@ -312,9 +314,10 @@ export default function App() {
             )}
             
             <div className="relative">
+              <div className="absolute -inset-2 bg-blue-500/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-full" />
               <button 
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 overflow-hidden p-0.5 hover:border-blue-500/50 transition-all active:scale-95 flex items-center justify-center"
+                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 overflow-hidden p-0.5 hover:border-blue-500/50 transition-all active:scale-95 flex items-center justify-center relative z-10 group"
               >
                 <img className="rounded-lg w-full h-full object-cover" src={state.profile.profileImageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${state.profile.name}`} alt="avatar" />
               </button>
@@ -437,10 +440,7 @@ export default function App() {
                         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 font-mono">VITALITY QUOTIENT</p>
                         <h3 className="text-2xl md:text-3xl font-bold text-slate-100">84%</h3>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
-                        <div className="p-1.5 bg-white/5 rounded border border-white/5">SLEEP: {state.wellbeing.sleepHours}h</div>
-                        <div className="p-1.5 bg-white/5 rounded border border-white/5 uppercase">STRESS: {state.wellbeing.stress}</div>
-                      </div>
+                      <BiometricVisualizer />
                     </div>
                   </div>
 
@@ -449,32 +449,25 @@ export default function App() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="glass p-6">
                       <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-4 font-mono">Kernel Event Stream</h3>
-                      <div className="space-y-3 font-mono text-[9px]">
-                        <div className="flex gap-3 text-blue-400/80">
-                          <span className="opacity-40">[10:42:01]</span>
-                          <span className="text-white/40">AUTH_TOKEN:</span>
-                          <span>ENCRYPTED_HANDSHAKE_SUCCESS</span>
-                        </div>
-                        <div className="flex gap-3 text-purple-400/80">
-                          <span className="opacity-40">[11:05:32]</span>
-                          <span className="text-white/40">FS_SYNC:</span>
-                          <span>{state.profile.name.toUpperCase()}_PROFILE_PUSH_COMPLETE</span>
-                        </div>
-                        <div className="flex gap-3 text-green-400/80">
-                          <span className="opacity-40">[11:15:09]</span>
-                          <span className="text-white/40">SYS_HEALTH:</span>
-                          <span>NOMINAL_STABILITY_DETECTED</span>
-                        </div>
-                      </div>
+                      <KernelLog entries={[
+                        { timestamp: '10:42:01', category: 'AUTH_TOKEN', message: 'ENCRYPTED_HANDSHAKE_SUCCESS', type: 'info' },
+                        { timestamp: '11:05:32', category: 'FS_SYNC', message: `${state.profile.name.toUpperCase()}_PROFILE_PUSH_COMPLETE`, type: 'success' },
+                        { timestamp: '11:15:09', category: 'SYS_HEALTH', message: 'NOMINAL_STABILITY_DETECTED', type: 'info' },
+                        { timestamp: '12:03:44', category: 'DB_GATE', message: 'FIREBASE_PROVISION_SYNCED', type: 'success' },
+                      ]} />
                     </div>
-                    <div className="glass p-6 bg-blue-900/10 border-blue-500/20">
-                      <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-400 mb-4 font-mono">Neural Guidance Unit</h3>
-                      <p className="text-[10px] text-slate-400 leading-relaxed mb-4">
+                    <div className="glass p-6 bg-blue-900/10 border-blue-500/20 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl pointer-events-none" />
+                      <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-400 mb-4 font-mono flex items-center gap-2">
+                        <Brain size={12} /> Neural Guidance Unit
+                      </h3>
+                      <p className="text-[10px] text-slate-400 leading-relaxed mb-4 relative z-10">
                         Based on your current telemetry, optimizing for a 50-minute deep focus block is recommended. Your cortisol levels suggest high receptivity to technical tasks.
                       </p>
+                      <PulseLine />
                       <button 
                         onClick={() => setActiveTab('focus')}
-                        className="px-4 py-2 border border-blue-500/30 rounded text-[9px] font-bold uppercase tracking-widest text-blue-400 hover:bg-blue-500 hover:text-white transition-all active:scale-95"
+                        className="mt-4 px-4 py-2 border border-blue-500/30 rounded text-[9px] font-bold uppercase tracking-widest text-blue-400 hover:bg-blue-500 hover:text-white transition-all active:scale-95 relative z-10"
                       >
                          Initialize Focus Protocol
                       </button>
