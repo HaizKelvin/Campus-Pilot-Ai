@@ -5,7 +5,17 @@
       "description": "Stores student data and subscription status",
       "type": "object",
       "properties": {
-        "profile": { "type": "object" },
+        "profile": { 
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "university": { "type": "string" },
+            "year": { "type": "number" },
+            "isInternational": { "type": "boolean" },
+            "country": { "type": "string" },
+            "profileImageUrl": { "type": "string" }
+          }
+        },
         "academics": { "type": "object" },
         "finance": { "type": "object" },
         "health": { "type": "object" },

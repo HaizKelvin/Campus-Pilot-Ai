@@ -34,6 +34,8 @@ export interface StudentProfile {
   university: string;
   year: number;
   isInternational: boolean;
+  country?: string;
+  profileImageUrl?: string;
 }
 
 export interface AppState {

@@ -9,32 +9,18 @@
  */
 
 import { useState, useEffect } from 'react';
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Wallet, 
-  HeartPulse, 
-  Brain, 
-  Zap,
-  Globe,
-  Plus,
-  Trash2,
-  ChevronRight,
-  Menu,
-  X,
-  Loader2,
-  LogOut
-} from 'lucide-react';
+import { Fingerprint, Settings, Upload, User, Zap, Globe, Plus, Trash2, ChevronRight, Menu, X, Loader2, LogOut, DollarSign, Activity, LayoutDashboard, BookOpen, Wallet, HeartPulse, Brain } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from './lib/utils';
 import { analyzeStudentStatus } from './services/aiService';
 import type { AppState } from './types';
 import { auth, db } from './lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { Auth } from './components/Auth';
 import { Chatbot } from './components/Chatbot';
+import { startRegistration } from '@simplewebauthn/browser';
 
 const INITIAL_STATE: AppState = {
   profile: {
@@ -72,6 +58,9 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isSyncingBiometrics, setIsSyncingBiometrics] = useState(false);
+  const [biometricStatus, setBiometricStatus] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'academics' | 'finance' | 'health' | 'wellbeing'>('dashboard');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
@@ -127,6 +116,37 @@ export default function App() {
       setState(INITIAL_STATE);
       setIsProfileOpen?.(false);
     });
+  };
+
+  const handleSyncBiometrics = async () => {
+    if (!user) return;
+    setIsSyncingBiometrics(true);
+    setBiometricStatus(null);
+    try {
+      const optionsRes = await fetch(`/api/webauthn/register-options?userId=${user.uid}&userName=${encodeURIComponent(state.profile.name)}`);
+      const options = await optionsRes.json();
+      const attResp = await startRegistration({ optionsJSON: options });
+      
+      const verifyRes = await fetch('/api/webauthn/register-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.uid, body: attResp }),
+      });
+      
+      const res = await verifyRes.json();
+      if (res.verified) {
+        localStorage.setItem('last_user_id', user.uid);
+        localStorage.setItem('biometric_enabled', 'true');
+        setBiometricStatus("Biometric Link Established.");
+      } else {
+        throw new Error("Verification failed");
+      }
+    } catch (e) {
+      console.error(e);
+      setBiometricStatus("Sync Failed. Ensure hardware support.");
+    } finally {
+      setIsSyncingBiometrics(false);
+    }
   };
 
   const navItems = [
@@ -277,7 +297,7 @@ export default function App() {
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 overflow-hidden p-0.5 hover:border-blue-500/50 transition-all active:scale-95"
               >
-                <img className="rounded-lg" src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${state.profile.name}`} alt="avatar" />
+                <img className="rounded-lg w-full h-full object-cover" src={state.profile.profileImageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${state.profile.name}`} alt="avatar" />
               </button>
               
               <AnimatePresence>
@@ -292,16 +312,25 @@ export default function App() {
                     >
                       <div className="space-y-1">
                         <p className="text-xs font-bold truncate text-slate-100">{state.profile.name}</p>
-                        <p className="text-[10px] font-mono text-slate-500 truncate">{state.profile.university}</p>
+                        <p className="text-[10px] font-mono text-slate-500 truncate">{state.profile.university} {state.profile.country && `• ${state.profile.country}`}</p>
                       </div>
                       <div className="h-[1px] bg-white/10 w-full" />
-                      <button 
-                        onClick={handleLogout}
-                        className="w-full flex items-center justify-between text-xs font-medium text-slate-400 hover:text-red-400 transition-colors group"
-                      >
-                        Sign Out Terminal
-                        <LogOut size={14} className="group-hover:translate-x-1 transition-transform" />
-                      </button>
+                      <div className="space-y-2">
+                        <button 
+                          onClick={() => { setIsEditingProfile(true); setIsProfileOpen(false); }}
+                          className="w-full flex items-center justify-between text-xs font-medium text-slate-400 hover:text-white transition-colors group"
+                        >
+                          Modify Identifiers
+                          <Settings size={14} className="group-hover:rotate-90 transition-transform" />
+                        </button>
+                        <button 
+                          onClick={handleLogout}
+                          className="w-full flex items-center justify-between text-xs font-medium text-slate-400 hover:text-red-400 transition-colors group"
+                        >
+                          Sign Out Terminal
+                          <LogOut size={14} className="group-hover:translate-x-1 transition-transform" />
+                        </button>
+                      </div>
                     </motion.div>
                   </>
                 )}
@@ -330,6 +359,69 @@ export default function App() {
                       🧭 Situation Overview: {aiResponse ? "Analytical report generated. Review strategic insights below." : "System idle. Sync telemetry data to begin analysis."}
                     </h2>
                   </header>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Academics Card */}
+                    <div className="glass p-6 space-y-4 border-blue-500/10 hover:border-blue-500/30 transition-colors group">
+                      <div className="flex items-center justify-between">
+                        <div className="p-2 bg-blue-500/10 rounded-lg"><BookOpen className="text-blue-400" size={18} /></div>
+                        <div className="text-[10px] font-mono text-blue-500 bg-blue-500/5 px-2 py-0.5 rounded border border-blue-500/20">ACADEMIC INTEGRITY: 98%</div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 font-mono">GPA PROJECTION</p>
+                        <div className="flex items-end gap-2">
+                          <h3 className="text-3xl font-bold text-slate-100">{state.academics.gpa || "0.00"}</h3>
+                          <span className="text-[10px] text-green-400 pb-1 font-mono">↑ TREND</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                          <span>CREDIT PROGRESS</span>
+                          <span>60%</span>
+                        </div>
+                        <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: '60%' }}
+                            className="h-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Finance Card */}
+                    <div className="glass p-6 space-y-4 border-purple-500/10 hover:border-purple-500/30 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="p-2 bg-purple-500/10 rounded-lg"><DollarSign className="text-purple-400" size={18} /></div>
+                        <div className="text-[10px] font-mono text-purple-400 bg-purple-500/5 px-2 py-0.5 rounded border border-purple-500/20">SOLVENCY: HIGH</div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 font-mono">NET DISPOSABLE</p>
+                        <h3 className="text-3xl font-bold text-slate-100">${state.finance.income}</h3>
+                      </div>
+                      <div className="flex gap-1 h-8 items-end">
+                        {[40, 70, 45, 90, 60, 80].map((h, i) => (
+                           <div key={i} className="flex-1 bg-purple-500/20 rounded-t-sm" style={{ height: `${h}%` }} />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Health Card */}
+                    <div className="glass p-6 space-y-4 border-red-500/10 hover:border-red-500/30 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="p-2 bg-red-500/10 rounded-lg"><Activity className="text-red-400" size={18} /></div>
+                        <div className="text-[10px] font-mono text-red-500 bg-red-500/5 px-2 py-0.5 rounded border border-red-500/20">BIO-SYNC: ACTIVE</div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 font-mono">VITALITY QUOTIENT</p>
+                        <h3 className="text-3xl font-bold text-slate-100">84%</h3>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                        <div className="p-1.5 bg-white/5 rounded border border-white/5">SLEEP: {state.wellbeing.sleepHours}h</div>
+                        <div className="p-1.5 bg-white/5 rounded border border-white/5 uppercase">STRESS: {state.wellbeing.stress}</div>
+                      </div>
+                    </div>
+                  </div>
 
                   {!aiResponse && !isAnalyzing && (
                     <div className="glass p-20 text-center border-dashed border-white/10">
@@ -779,9 +871,111 @@ export default function App() {
           </div>
         </div>
       </main>
+      {/* Profile Editing Modal */}
+      <AnimatePresence>
+        {isEditingProfile && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsEditingProfile(false)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md glass p-8 shadow-2xl space-y-6"
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold tracking-tight">Modify Base Identifiers</h2>
+                <button onClick={() => setIsEditingProfile(false)} className="text-slate-500 hover:text-white transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-center">
+                  <div className="relative group">
+                    <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-white/10 group-hover:border-blue-500/50 transition-all">
+                      <img 
+                        src={state.profile.profileImageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${state.profile.name}`} 
+                        className="w-full h-full object-cover"
+                        alt="Profile preview"
+                      />
+                    </div>
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl cursor-pointer">
+                      <Upload size={20} className="text-white" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Display Name</label>
+                  <input 
+                    value={state.profile.name}
+                    onChange={(e) => setState({...state, profile: {...state.profile, name: e.target.value}})}
+                    className="w-full bg-slate-950/50 border border-white/10 p-3 rounded-xl focus:ring-1 focus:ring-blue-500 outline-none"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Academic Institution (School)</label>
+                  <input 
+                    value={state.profile.university}
+                    onChange={(e) => setState({...state, profile: {...state.profile, university: e.target.value}})}
+                    className="w-full bg-slate-950/50 border border-white/10 p-3 rounded-xl focus:ring-1 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. Stanford University"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Country of Residence</label>
+                  <input 
+                    value={state.profile.country || ''}
+                    onChange={(e) => setState({...state, profile: {...state.profile, country: e.target.value}})}
+                    className="w-full bg-slate-950/50 border border-white/10 p-3 rounded-xl focus:ring-1 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. Canada"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Profile Image URL</label>
+                  <input 
+                    value={state.profile.profileImageUrl || ''}
+                    onChange={(e) => setState({...state, profile: {...state.profile, profileImageUrl: e.target.value}})}
+                    className="w-full bg-slate-950/50 border border-white/10 p-3 rounded-xl focus:ring-1 focus:ring-blue-500 outline-none"
+                    placeholder="https://..."
+                  />
+                </div>
+
+                <div className="pt-4 border-t border-white/5 space-y-3">
+                   <button 
+                     onClick={handleSyncBiometrics}
+                     disabled={isSyncingBiometrics}
+                     className="w-full flex items-center justify-center gap-3 py-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all text-xs font-bold uppercase tracking-widest group"
+                   >
+                     {isSyncingBiometrics ? <Loader2 className="animate-spin" size={16} /> : <Fingerprint size={16} className="group-hover:scale-110 transition-transform" />}
+                     Establish Biometric Link
+                   </button>
+                   {biometricStatus && <p className="text-[9px] font-mono text-blue-500 text-center uppercase tracking-tighter">{biometricStatus}</p>}
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setIsEditingProfile(false)}
+                className="w-full py-4 bg-white text-slate-950 font-bold rounded-xl hover:bg-slate-200 transition-colors shadow-xl"
+              >
+                Commit Changes
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {user && <Chatbot />}
     </div>
   );
-
 }
 
