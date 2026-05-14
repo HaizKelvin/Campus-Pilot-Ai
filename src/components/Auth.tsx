@@ -3,7 +3,9 @@ import { auth, db } from '../lib/firebase';
 import { 
   signInWithPopup, 
   GoogleAuthProvider,
-  signOut as firebaseSignOut
+  signOut as firebaseSignOut,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword
 } from 'firebase/auth';
 import { 
   doc, 
@@ -12,10 +14,12 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
-import { Fingerprint, LogIn, UserPlus, Loader2, Zap, Shield, Globe, Terminal } from 'lucide-react';
+import { Fingerprint, LogIn, UserPlus, Loader2, Zap, Shield, Globe, Terminal, RefreshCw, Sparkles } from 'lucide-react';
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 import { cn } from '../lib/utils';
 import { AppState } from '../types';
+
+const AVATAR_STLYES = ['avataaars', 'bottts', 'pixel-art', 'notionists'];
 
 interface AuthProps {
   onAuthenticated: (user: any, userData: AppState) => void;
@@ -28,6 +32,8 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
   const [error, setError] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLandingPage, setIsLandingPage] = useState(true);
   const [tempUser, setTempUser] = useState<any>(null);
   const [onboardingData, setOnboardingData] = useState({
@@ -35,8 +41,18 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
     university: '',
     country: '',
     isInternational: false,
-    profileImageUrl: ''
+    profileImageUrl: '',
+    avatarStyle: 'avataaars'
   });
+
+  const generateRandomAvatar = () => {
+    const seed = Math.random().toString(36).substring(7);
+    const style = onboardingData.avatarStyle;
+    setOnboardingData(prev => ({
+      ...prev,
+      profileImageUrl: `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}`
+    }));
+  };
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -62,7 +78,49 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
       }
     } catch (err: any) {
       console.error(err);
-      setError("Google authentication failed. Ensure popups are allowed.");
+      setError("Google authentication failed. If you see no popup, please ensure popups are allowed or try opening the app in a new tab using the button in the top right.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      let user;
+      if (authMode === 'signup') {
+        const result = await createUserWithEmailAndPassword(auth, email, password);
+        user = result.user;
+      } else {
+        const result = await signInWithEmailAndPassword(auth, email, password);
+        user = result.user;
+      }
+
+      const userRef = doc(db, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        setAuthMode('signup');
+        setTempUser(user);
+        setOnboardingData(prev => ({
+          ...prev,
+          name: user.displayName || email.split('@')[0],
+        }));
+        setShowOnboarding(true);
+      } else {
+        onAuthenticated(user, userSnap.data() as AppState);
+      }
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        setError("Invalid email or password identifiers.");
+      } else if (err.code === 'auth/email-already-in-use') {
+        setError("Identifier already registered in terminal.");
+      } else {
+        setError(err.message || "Authentication sequence failed.");
+      }
     } finally {
       setLoading(false);
     }
@@ -264,12 +322,13 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
               ← Back
             </button>
 
-            <div className="space-y-2">
+            <div className="space-y-2 pb-2">
               <h2 className="text-3xl font-extrabold tracking-tighter">
                 {authMode === 'login' ? 'System Login' : 'Register Account'}
               </h2>
               <div className="flex items-center justify-center gap-4">
                 <button 
+                  type="button"
                   onClick={() => setAuthMode('login')}
                   className={cn("text-[10px] font-mono uppercase tracking-widest transition-colors", authMode === 'login' ? "text-blue-400" : "text-slate-600")}
                 >
@@ -277,6 +336,7 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
                 </button>
                 <div className="w-[1px] h-3 bg-slate-800" />
                 <button 
+                  type="button"
                   onClick={() => setAuthMode('signup')}
                   className={cn("text-[10px] font-mono uppercase tracking-widest transition-colors", authMode === 'signup' ? "text-blue-400" : "text-slate-600")}
                 >
@@ -285,32 +345,67 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
               </div>
             </div>
 
-            <button 
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-4 py-4 rounded-2xl bg-white text-slate-950 font-bold hover:bg-slate-100 transition-all shadow-xl disabled:opacity-50"
-            >
-              {loading ? <Loader2 className="animate-spin" /> : <LogIn size={20} />}
-              Continue with Google
-            </button>
+            <form onSubmit={handleEmailAuth} className="space-y-4">
+              <div className="space-y-1 text-left">
+                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider ml-1">Terminal Email</label>
+                <input 
+                  required
+                  type="email"
+                  placeholder="name@university.edu"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-slate-950/50 border border-white/10 p-4 rounded-2xl outline-none focus:ring-1 focus:ring-blue-500 text-sm transition-all"
+                />
+              </div>
+              <div className="space-y-1 text-left">
+                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider ml-1">Secure Passkey</label>
+                <input 
+                  required
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-slate-950/50 border border-white/10 p-4 rounded-2xl outline-none focus:ring-1 focus:ring-blue-500 text-sm transition-all"
+                />
+              </div>
+              <button 
+                type="submit"
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-blue-600 text-white font-bold hover:bg-blue-500 transition-all shadow-xl disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="animate-spin" /> : <LogIn size={20} />}
+                {authMode === 'login' ? 'Authorize Entry' : 'Create Academic Profile'}
+              </button>
+            </form>
 
             <div className="relative">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5" /></div>
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/11" /></div>
               <div className="relative flex justify-center text-[10px] uppercase font-mono">
-                <span className="bg-[#0f172a] px-3 text-slate-600">Secure Biometric Path</span>
+                <span className="bg-[#0f172a] px-3 text-slate-600">Cross-Sync Identity</span>
               </div>
             </div>
 
-            <button 
-              onClick={handleBiometricAuth}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white/5 text-slate-400 font-bold hover:bg-white/10 transition-all border border-white/10 group overflow-hidden"
-            >
-              <div className="relative flex items-center gap-3">
-                <Fingerprint size={20} className="group-hover:text-blue-400 transition-colors" />
-                Biometric Terminal Access
-              </div>
-            </button>
+            <div className="grid grid-cols-2 gap-4">
+              <button 
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                className="flex items-center justify-center gap-3 py-3 rounded-2xl bg-white/5 text-white font-bold hover:bg-white/10 transition-all border border-white/10 disabled:opacity-50 text-xs"
+              >
+                <Globe size={18} className="text-blue-400" />
+                Google
+              </button>
+
+              <button 
+                type="button"
+                onClick={handleBiometricAuth}
+                disabled={loading}
+                className="flex items-center justify-center gap-3 py-3 rounded-2xl bg-white/5 text-white font-bold hover:bg-white/10 transition-all border border-white/10 group disabled:opacity-50 text-xs"
+              >
+                <Fingerprint size={18} className="group-hover:text-blue-400 transition-colors" />
+                Biometrics
+              </button>
+            </div>
 
             {error && <p className="text-red-400 text-[10px] font-mono px-4 leading-tight">{error}</p>}
             
@@ -331,6 +426,44 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
             </div>
             
             <form onSubmit={submitOnboarding} className="space-y-4">
+              <div className="space-y-4">
+                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Academic Identity</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 overflow-hidden shrink-0">
+                    <img 
+                      src={onboardingData.profileImageUrl || `https://api.dicebear.com/7.x/${onboardingData.avatarStyle}/svg?seed=${onboardingData.name || 'default'}`} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="space-y-2 flex-1">
+                    <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar">
+                      {AVATAR_STLYES.map(style => (
+                        <button 
+                          key={style}
+                          type="button"
+                          onClick={() => setOnboardingData({...onboardingData, avatarStyle: style})}
+                          className={cn(
+                            "px-2 py-1 rounded-md text-[8px] font-mono uppercase bg-white/5 border border-white/10 hover:border-blue-500/50 transition-colors whitespace-nowrap",
+                            onboardingData.avatarStyle === style && "border-blue-500 text-blue-400 bg-blue-500/5"
+                          )}
+                        >
+                          {style}
+                        </button>
+                      ))}
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={generateRandomAvatar}
+                      className="flex items-center gap-2 text-[10px] text-slate-500 hover:text-white transition-colors"
+                    >
+                      <RefreshCw size={10} />
+                      Regenerate Random Identity
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-1">
                 <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Full Research Name</label>
                 <input 

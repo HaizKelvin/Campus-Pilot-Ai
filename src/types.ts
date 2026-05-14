@@ -36,6 +36,7 @@ export interface StudentProfile {
   isInternational: boolean;
   country?: string;
   profileImageUrl?: string;
+  webauthnCredentials?: any[];
 }
 
 export interface AppState {

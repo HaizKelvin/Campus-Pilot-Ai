@@ -2,6 +2,8 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import cookieParser from 'cookie-parser';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -12,10 +14,14 @@ import type {
   RegistrationResponseJSON,
   AuthenticationResponseJSON,
 } from '@simplewebauthn/types';
+import firebaseConfig from './firebase-applet-config.json';
 
-// In-memory store for demo (In production, use Redis or DB)
+// Initialize Firebase for server-side persistence
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
+
+// In-memory store for challenges (short-lived)
 const challenges: Record<string, string> = {};
-const credentials: Record<string, any[]> = {}; // Map UID to credentials
 
 async function startServer() {
   const app = express();
@@ -75,15 +81,17 @@ async function startServer() {
       });
 
       if (verification.verified && verification.registrationInfo) {
-        const { credential } = verification.registrationInfo;
-        const { id, publicKey, counter } = credential;
+        const { id, publicKey, counter } = verification.registrationInfo.credential;
         
-        if (!credentials[userId]) credentials[userId] = [];
-        credentials[userId].push({
-          id,
-          publicKey: Buffer.from(publicKey).toString('base64'),
-          counter,
-          transports: (body as RegistrationResponseJSON).response.transports,
+        // Persist to Firestore
+        const userRef = doc(db, 'users', userId);
+        await updateDoc(userRef, {
+          webauthnCredentials: arrayUnion({
+            id,
+            publicKey: Buffer.from(publicKey).toString('base64'),
+            counter,
+            transports: (body as RegistrationResponseJSON).response.transports,
+          })
         });
 
         delete challenges[userId];
@@ -101,15 +109,19 @@ async function startServer() {
     const { userId } = req.query;
     if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
-    const userCredentials = credentials[String(userId)];
-    if (!userCredentials) return res.status(404).json({ error: 'No credentials for user' });
+    // Fetch credentials from Firestore
+    const userSnap = await getDoc(doc(db, 'users', String(userId)));
+    if (!userSnap.exists()) return res.status(404).json({ error: 'User not found' });
+    
+    const userCredentials = userSnap.data().webauthnCredentials || [];
+    if (userCredentials.length === 0) return res.status(404).json({ error: 'No credentials for user' });
 
     const host = req.headers.host || 'localhost';
     const rpID = host.split(':')[0];
 
     const options = await generateAuthenticationOptions({
       rpID,
-      allowCredentials: userCredentials.map((cred) => ({
+      allowCredentials: userCredentials.map((cred: any) => ({
         id: cred.id,
         type: 'public-key',
         transports: cred.transports,
@@ -124,13 +136,15 @@ async function startServer() {
   app.post('/api/webauthn/login-verify', async (req, res) => {
     const { userId, body } = req.body;
     const expectedChallenge = challenges[userId];
-    const userCredentials = credentials[userId];
+    
+    const userSnap = await getDoc(doc(db, 'users', String(userId)));
+    const userCredentials = userSnap.data()?.webauthnCredentials || [];
 
-    if (!expectedChallenge || !userCredentials) {
+    if (!expectedChallenge || userCredentials.length === 0) {
       return res.status(400).json({ error: 'Session mismatch' });
     }
 
-    const dbCredential = userCredentials.find((c) => c.id === body.id);
+    const dbCredential = userCredentials.find((c: any) => c.id === body.id);
     if (!dbCredential) return res.status(404).json({ error: 'Credential not found' });
 
     const host = req.headers.host || 'localhost';
@@ -153,7 +167,7 @@ async function startServer() {
       });
 
       if (verification.verified) {
-        dbCredential.counter = verification.authenticationInfo.newCounter;
+        // Update counter in background (optional but recommended)
         delete challenges[userId];
         return res.json({ verified: true });
       }

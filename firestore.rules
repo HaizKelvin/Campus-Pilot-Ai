@@ -17,7 +17,11 @@ service cloud.firestore {
       allow create: if isOwner(userId) 
         && request.resource.data.keys().hasAll(['profile'])
         && request.resource.data.profile.name is string;
-      allow update: if isOwner(userId);
+      allow update: if isOwner(userId)
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['webauthnCredentials'])
+          || (request.resource.data.webauthnCredentials is list && request.resource.data.webauthnCredentials.size() < 10)
+        );
       
       // Chat subcollection
       match /chats/{chatId} {
