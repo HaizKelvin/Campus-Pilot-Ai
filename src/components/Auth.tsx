@@ -14,7 +14,7 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
-import { Fingerprint, LogIn, UserPlus, Loader2, Zap, Shield, Globe, Terminal, RefreshCw, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { Fingerprint, LogIn, UserPlus, Loader2, Zap, Shield, Globe, Terminal, RefreshCw, Eye, EyeOff, Upload } from 'lucide-react';
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 import { cn } from '../lib/utils';
 import { AppState } from '../types';
@@ -479,11 +479,34 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
               <div className="space-y-4">
                 <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Academic Identity</label>
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 overflow-hidden shrink-0">
+                  <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 overflow-hidden shrink-0 group relative">
                     <img 
                       src={onboardingData.profileImageUrl || `https://api.dicebear.com/7.x/${onboardingData.avatarStyle}/svg?seed=${onboardingData.name || 'default'}`} 
                       alt="Avatar" 
                       className="w-full h-full object-cover"
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => document.getElementById('onboarding-upload')?.click()}
+                      className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                    >
+                      <Upload size={16} />
+                    </button>
+                    <input 
+                      id="onboarding-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setOnboardingData({...onboardingData, profileImageUrl: reader.result as string});
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
                     />
                   </div>
                   <div className="space-y-2 flex-1">
@@ -541,15 +564,6 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
                   placeholder="e.g. USA"
                   value={onboardingData.country}
                   onChange={(e) => setOnboardingData({...onboardingData, country: e.target.value})}
-                  className="w-full bg-slate-950/50 border border-white/10 p-3 rounded-xl outline-none focus:ring-1 focus:ring-blue-500 text-sm"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Profile Image URL (Optional)</label>
-                <input 
-                  placeholder="https://example.com/avatar.jpg"
-                  value={onboardingData.profileImageUrl}
-                  onChange={(e) => setOnboardingData({...onboardingData, profileImageUrl: e.target.value})}
                   className="w-full bg-slate-950/50 border border-white/10 p-3 rounded-xl outline-none focus:ring-1 focus:ring-blue-500 text-sm"
                 />
               </div>
