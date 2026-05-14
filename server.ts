@@ -85,14 +85,14 @@ async function startServer() {
         
         // Persist to Firestore
         const userRef = doc(db, 'users', userId);
-        await updateDoc(userRef, {
+        await setDoc(userRef, {
           webauthnCredentials: arrayUnion({
             id,
             publicKey: Buffer.from(publicKey).toString('base64'),
             counter,
             transports: (body as RegistrationResponseJSON).response.transports,
           })
-        });
+        }, { merge: true });
 
         delete challenges[userId];
         return res.json({ verified: true });

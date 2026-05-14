@@ -18,6 +18,7 @@ import { Fingerprint, LogIn, UserPlus, Loader2, Zap, Shield, Globe, Terminal, Re
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 import { cn } from '../lib/utils';
 import { AppState } from '../types';
+import firebaseConfig from '../../firebase-applet-config.json';
 
 const AVATAR_STLYES = ['avataaars', 'bottts', 'pixel-art', 'notionists'];
 
@@ -323,6 +324,12 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
             </button>
 
             <div className="space-y-2 pb-2">
+              <div className="flex justify-center mb-2">
+                <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center gap-2">
+                  <div className="w-1 h-1 bg-blue-500 rounded-full animate-pulse" />
+                  <span className="text-[8px] font-mono uppercase tracking-[0.2em] text-blue-400">Node: {firebaseConfig.projectId.split('-').slice(-1)[0]}</span>
+                </div>
+              </div>
               <h2 className="text-3xl font-extrabold tracking-tighter">
                 {authMode === 'login' ? 'System Login' : 'Register Account'}
               </h2>
