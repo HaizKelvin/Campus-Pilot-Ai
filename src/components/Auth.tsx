@@ -14,7 +14,7 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
-import { Fingerprint, LogIn, UserPlus, Loader2, Zap, Shield, Globe, Terminal, RefreshCw, Sparkles } from 'lucide-react';
+import { Fingerprint, LogIn, UserPlus, Loader2, Zap, Shield, Globe, Terminal, RefreshCw, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 import { cn } from '../lib/utils';
 import { AppState } from '../types';
@@ -35,6 +35,7 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLandingPage, setIsLandingPage] = useState(true);
   const [tempUser, setTempUser] = useState<any>(null);
   const [onboardingData, setOnboardingData] = useState({
@@ -45,6 +46,16 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
     profileImageUrl: '',
     avatarStyle: 'avataaars'
   });
+
+  const getPasswordStrength = (pass: string) => {
+    if (!pass) return 0;
+    let strength = 0;
+    if (pass.length >= 8) strength += 25;
+    if (/[A-Z]/.test(pass)) strength += 25;
+    if (/[0-9]/.test(pass)) strength += 25;
+    if (/[^A-Za-z0-9]/.test(pass)) strength += 25;
+    return strength;
+  };
 
   const generateRandomAvatar = () => {
     const seed = Math.random().toString(36).substring(7);
@@ -352,7 +363,7 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
               </div>
             </div>
 
-            <form onSubmit={handleEmailAuth} className="space-y-4">
+            <form onSubmit={handleEmailAuth} className="space-y-4 md:space-y-6">
               <div className="space-y-1 text-left">
                 <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider ml-1">Terminal Email</label>
                 <input 
@@ -361,24 +372,55 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
                   placeholder="name@university.edu"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-slate-950/50 border border-white/10 p-4 rounded-2xl outline-none focus:ring-1 focus:ring-blue-500 text-sm transition-all"
+                  className="w-full bg-slate-950/50 border border-white/10 p-4 rounded-2xl outline-none focus:ring-1 focus:ring-blue-500 text-sm md:text-base transition-all"
                 />
               </div>
-              <div className="space-y-1 text-left">
+              <div className="space-y-1 text-left relative">
                 <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider ml-1">Secure Passkey</label>
-                <input 
-                  required
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-950/50 border border-white/10 p-4 rounded-2xl outline-none focus:ring-1 focus:ring-blue-500 text-sm transition-all"
-                />
+                <div className="relative">
+                  <input 
+                    required
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-slate-950/50 border border-white/10 p-4 pr-12 rounded-2xl outline-none focus:ring-1 focus:ring-blue-500 text-sm md:text-base transition-all"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+                
+                {authMode === 'signup' && password.length > 0 && (
+                  <div className="mt-2 space-y-1 px-1">
+                    <div className="flex justify-between items-center text-[8px] font-mono uppercase text-slate-500 tracking-tighter">
+                      <span>SECURE STRENGTH</span>
+                      <span>{getPasswordStrength(password)}%</span>
+                    </div>
+                    <div className="h-1 bg-slate-900 rounded-full overflow-hidden flex gap-1">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div 
+                          key={i} 
+                          className={cn(
+                            "h-full flex-1 transition-all duration-500",
+                            getPasswordStrength(password) >= i * 25 
+                              ? (getPasswordStrength(password) <= 50 ? "bg-amber-500" : "bg-blue-500")
+                              : "bg-slate-800"
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <button 
                 type="submit"
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-blue-600 text-white font-bold hover:bg-blue-500 transition-all shadow-xl disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-3 py-4 md:py-5 rounded-2xl bg-blue-600 text-white font-bold hover:bg-blue-500 transition-all shadow-xl disabled:opacity-50 active:scale-[0.98]"
               >
                 {loading ? <Loader2 className="animate-spin" /> : <LogIn size={20} />}
                 {authMode === 'login' ? 'Authorize Entry' : 'Create Academic Profile'}
