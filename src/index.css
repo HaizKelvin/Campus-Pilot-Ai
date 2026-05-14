@@ -29,6 +29,40 @@
   .status-pill {
     @apply px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider;
   }
+
+  .tech-border {
+    @apply border-white/5 relative;
+  }
+
+  .tech-border::before {
+    content: "";
+    @apply absolute -top-1 -left-1 w-2 h-2 border-t border-l border-blue-500/50;
+  }
+
+  .tech-border::after {
+    content: "";
+    @apply absolute -bottom-1 -right-1 w-2 h-2 border-b border-r border-blue-500/50;
+  }
+
+  .glow-blue {
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  }
+
+  .glow-purple {
+    text-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full;
 }
 
 @keyframes slow-zoom {

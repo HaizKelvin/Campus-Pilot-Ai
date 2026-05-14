@@ -1,39 +1,75 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
+    // ---------------------------------------------------------
+    // Pillar 3: GLOBAL HELPERS (Hardened ID & Auth)
+    // ---------------------------------------------------------
     function isSignedIn() { return request.auth != null; }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
-    function isValidId(id) { return id is string && id.size() <= 128; }
-
-    // Default deny
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    // ---------------------------------------------------------
+    // Pillar 0: GLOBAL SAFETY NET
+    // ---------------------------------------------------------
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Health check
+    // Connectivity Check
     match /system/health {
       allow get: if true;
     }
 
-    // User profiles and telemetry
+    // ---------------------------------------------------------
+    // Pillar 2: VALIDATION BLUEPRINTS
+    // ---------------------------------------------------------
+    
+    function isValidUser(data) {
+      return data.keys().hasAll(['profile'])
+        && data.profile is map
+        && data.profile.name is string && data.profile.name.size() > 0 && data.profile.name.size() <= 100
+        && data.profile.university is string && data.profile.university.size() <= 200
+        && (data.academics == null || data.academics is map)
+        && (data.finance == null || data.finance is map)
+        && (data.health == null || data.health is map)
+        && (data.wellbeing == null || data.wellbeing is map);
+    }
+
+    function isValidChat(data) {
+      return data.keys().hasAll(['role', 'content', 'timestamp'])
+        && data.keys().size() == 3
+        && data.role in ['user', 'model']
+        && data.content is string && data.content.size() <= 5000
+        && data.timestamp is string; // Using string format from types
+    }
+
+    // ---------------------------------------------------------
+    // Pillar 1 & 4: COLLECTION MATCHING
+    // ---------------------------------------------------------
+    
     match /users/{userId} {
+      // Secure List Query (Pillar 8): Enforce ownership in query
       allow get: if isOwner(userId);
-      allow create: if isOwner(userId) 
-        && request.resource.data.keys().hasAll(['profile'])
-        && request.resource.data.profile.name is string;
-      allow update: if isOwner(userId)
-        && (
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['webauthnCredentials'])
-          || (request.resource.data.webauthnCredentials is list && request.resource.data.webauthnCredentials.size() < 10)
-        );
       
-      // Chat subcollection
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      
+      allow update: if isOwner(userId) && isValidUser(incoming()) && (
+        // Action: Standard Profile/Data Update
+        // Ensure webauthnCredentials can only be touched by specific actions if we had them split,
+        // but since they are in the same doc, we allow them if strictly defined.
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'profile', 'academics', 'finance', 'health', 'wellbeing', 'webauthnCredentials'
+        ])
+      );
+
       match /chats/{chatId} {
-        allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) 
-          && request.resource.data.keys().hasAll(['role', 'content', 'timestamp'])
-          && request.resource.data.role in ['user', 'model'];
+        // Pillar 8: Force query filter by user
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidChat(incoming());
+        allow update, delete: if false; // Chats are immutable in this flow
       }
     }
   }

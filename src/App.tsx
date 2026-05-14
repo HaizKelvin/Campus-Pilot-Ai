@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Fingerprint, Settings, Upload, User, Zap, Globe, Plus, Trash2, ChevronRight, Menu, X, Loader2, LogOut, DollarSign, Activity, LayoutDashboard, BookOpen, Wallet, HeartPulse, Brain } from 'lucide-react';
+import { Fingerprint, Settings, Upload, User, Zap, Globe, Plus, Trash2, ChevronRight, Menu, X, Loader2, LogOut, DollarSign, Activity, LayoutDashboard, BookOpen, Wallet, HeartPulse, Brain, Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from './lib/utils';
@@ -20,6 +20,8 @@ import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { Auth } from './components/Auth';
 import { Chatbot } from './components/Chatbot';
+import { DashboardCharts } from './components/DashboardCharts';
+import { FocusMode } from './components/FocusMode';
 import { startRegistration } from '@simplewebauthn/browser';
 
 const INITIAL_STATE: AppState = {
@@ -62,7 +64,7 @@ export default function App() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isSyncingBiometrics, setIsSyncingBiometrics] = useState(false);
   const [biometricStatus, setBiometricStatus] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'academics' | 'finance' | 'health' | 'wellbeing'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'academics' | 'finance' | 'health' | 'wellbeing' | 'focus'>('dashboard');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -157,10 +159,12 @@ export default function App() {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'academics', label: 'Academics', icon: BookOpen },
+    { id: 'focus', label: 'Deep Focus', icon: Target },
     { id: 'finance', label: 'Finance', icon: Wallet },
     { id: 'health', label: 'Health', icon: HeartPulse },
     { id: 'wellbeing', label: 'Wellbeing', icon: Brain },
   ];
+
 
   return (
     <div className="flex h-screen bg-slate-950 font-sans overflow-hidden text-slate-50 relative">
@@ -385,19 +389,19 @@ export default function App() {
                       <div>
                         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 font-mono">GPA PROJECTION</p>
                         <div className="flex items-end gap-2">
-                          <h3 className="text-2xl md:text-3xl font-bold text-slate-100">{state.academics.gpa || "0.00"}</h3>
-                          <span className="text-[10px] text-green-400 pb-1 font-mono">↑ TREND</span>
+                           <h3 className="text-2xl md:text-3xl font-bold text-slate-100">{state.academics.gpa || "0.00"}</h3>
+                           <span className="text-[10px] text-green-400 pb-1 font-mono">↑ TREND</span>
                         </div>
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between text-[10px] font-mono text-slate-500">
                           <span>CREDIT PROGRESS</span>
-                          <span>60%</span>
+                          <span>{Math.min(100, (state.academics.courses.length * 20))}%</span>
                         </div>
                         <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
                           <motion.div 
                             initial={{ width: 0 }}
-                            animate={{ width: '60%' }}
+                            animate={{ width: `${Math.min(100, (state.academics.courses.length * 20))}%` }}
                             className="h-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]" 
                           />
                         </div>
@@ -440,6 +444,43 @@ export default function App() {
                     </div>
                   </div>
 
+                  <DashboardCharts finance={state.finance} academics={state.academics} />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="glass p-6">
+                      <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-4 font-mono">Kernel Event Stream</h3>
+                      <div className="space-y-3 font-mono text-[9px]">
+                        <div className="flex gap-3 text-blue-400/80">
+                          <span className="opacity-40">[10:42:01]</span>
+                          <span className="text-white/40">AUTH_TOKEN:</span>
+                          <span>ENCRYPTED_HANDSHAKE_SUCCESS</span>
+                        </div>
+                        <div className="flex gap-3 text-purple-400/80">
+                          <span className="opacity-40">[11:05:32]</span>
+                          <span className="text-white/40">FS_SYNC:</span>
+                          <span>{state.profile.name.toUpperCase()}_PROFILE_PUSH_COMPLETE</span>
+                        </div>
+                        <div className="flex gap-3 text-green-400/80">
+                          <span className="opacity-40">[11:15:09]</span>
+                          <span className="text-white/40">SYS_HEALTH:</span>
+                          <span>NOMINAL_STABILITY_DETECTED</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="glass p-6 bg-blue-900/10 border-blue-500/20">
+                      <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-400 mb-4 font-mono">Neural Guidance Unit</h3>
+                      <p className="text-[10px] text-slate-400 leading-relaxed mb-4">
+                        Based on your current telemetry, optimizing for a 50-minute deep focus block is recommended. Your cortisol levels suggest high receptivity to technical tasks.
+                      </p>
+                      <button 
+                        onClick={() => setActiveTab('focus')}
+                        className="px-4 py-2 border border-blue-500/30 rounded text-[9px] font-bold uppercase tracking-widest text-blue-400 hover:bg-blue-500 hover:text-white transition-all active:scale-95"
+                      >
+                         Initialize Focus Protocol
+                      </button>
+                    </div>
+                  </div>
+
                   {!aiResponse && !isAnalyzing && (
                     <div className="glass p-12 md:p-20 text-center border-dashed border-white/10">
                       <LayoutDashboard className="mx-auto mb-4 text-slate-700" size={48} />
@@ -474,6 +515,18 @@ export default function App() {
                   )}
                 </motion.div>
               )}
+
+              {activeTab === 'focus' && (
+                <motion.div 
+                  key="focus"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                >
+                  <FocusMode />
+                </motion.div>
+              )}
+
 
               {activeTab === 'academics' && (
                 <motion.div 
