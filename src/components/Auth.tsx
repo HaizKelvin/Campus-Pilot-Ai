@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { auth, db } from '../lib/firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { 
   signInWithPopup, 
   GoogleAuthProvider,
@@ -215,8 +215,8 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
         profileImageUrl: onboardingData.profileImageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${onboardingData.name}`
       },
       academics: { courses: [], assignments: [], gpa: 0 },
-      finance: { rent: 0, food: 0, transport: 0, study: 0, income: 0 },
-      health: { weight: 0, activityLevel: 'medium', mealsToday: [] },
+      finance: { income: 0, expenses: [] },
+      health: { weight: 0, activityLevel: 'medium', mealsToday: [], conditions: [] },
       wellbeing: { stress: 'Low', focus: 'Good', sleepHours: 8 },
       subscription: {
         status: 'trial',
@@ -233,6 +233,7 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
       await enableBiometrics(tempUser);
       onAuthenticated(tempUser, userData);
     } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `users/${tempUser.uid}`);
       setError("Failed to save profile. Try again.");
     } finally {
       setLoading(false);

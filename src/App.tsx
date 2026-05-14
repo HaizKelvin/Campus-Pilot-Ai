@@ -15,7 +15,7 @@ import ReactMarkdown from 'react-markdown';
 import { cn } from './lib/utils';
 import { analyzeStudentStatus } from './services/aiService';
 import type { AppState } from './types';
-import { auth, db } from './lib/firebase';
+import { auth, db, handleFirestoreError, OperationType } from './lib/firebase';
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { Auth } from './components/Auth';
@@ -97,8 +97,12 @@ export default function App() {
       localStorage.setItem('campuspilot_state', JSON.stringify(state));
       return;
     }
-    const timer = setTimeout(() => {
-      setDoc(doc(db, 'users', user.uid), state, { merge: true });
+    const timer = setTimeout(async () => {
+      try {
+        await setDoc(doc(db, 'users', user.uid), state, { merge: true });
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}`);
+      }
     }, 1000);
     return () => clearTimeout(timer);
   }, [state, user]);
