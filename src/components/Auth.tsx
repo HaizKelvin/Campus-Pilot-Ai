@@ -14,7 +14,7 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
-import { Fingerprint, LogIn, UserPlus, Loader2, Zap, Shield, Globe, Terminal, RefreshCw, Eye, EyeOff, Upload } from 'lucide-react';
+import { Fingerprint, LogIn, UserPlus, Loader2, Zap, Shield, Globe, Terminal, RefreshCw, Eye, EyeOff, Upload, ChevronRight } from 'lucide-react';
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 import { cn } from '../lib/utils';
 import { AppState } from '../types';
@@ -243,123 +243,139 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
   if (currentUser) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950 overflow-hidden text-slate-200">
-      <div 
-        className="absolute inset-0 bg-cover bg-center transition-transform duration-[40s] scale-110 animate-slow-zoom"
-        style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1622397333309-3056849bc70b?auto=format&fit=crop&q=80&w=2000")' }}
-      />
-      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[3px]" />
-      <div className="mesh-bg opacity-30" />
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950 overflow-hidden text-slate-200 selection:bg-blue-500/30">
+      {/* Dynamic Background */}
+      <div className="absolute inset-0 z-0">
+        <div 
+          className="absolute inset-0 bg-cover bg-center transition-transform duration-[60s] scale-110 animate-slow-zoom opacity-50"
+          style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1541339907198-e08756ebafe3?auto=format&fit=crop&q=80&w=2000")' }}
+        />
+        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px]" />
+        
+        {/* Technical Grid Overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:32px_32px]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 via-transparent to-slate-950" />
+        
+        {/* Interactive Glows */}
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/10 blur-[120px]" />
+        <div className="absolute bottom-[0%] right-[0%] w-[30%] h-[30%] rounded-full bg-purple-500/5 blur-[100px]" />
+      </div>
 
       <AnimatePresence mode="wait">
         {isLandingPage ? (
           <motion.div 
             key="landing"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.1, filter: 'blur(10px)' }}
-            className="relative z-10 text-center max-w-4xl px-10 space-y-12"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 1.05, filter: 'blur(20px)' }}
+            className="relative z-10 text-center max-w-5xl px-6 w-full h-full flex flex-col items-center justify-center pointer-events-none"
           >
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="space-y-6"
-            >
-              <div className="w-24 h-24 bg-blue-500/10 rounded-[2rem] flex items-center justify-center mx-auto mb-8 border border-blue-500/20 shadow-2xl backdrop-blur-xl">
-                <Zap className="text-blue-400" size={48} />
-              </div>
-              <h1 className="text-7xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/40 leading-none">
-                Master Your<br />Academic Trajectory.
+            <div className="pointer-events-auto flex flex-col items-center">
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8 backdrop-blur-md"
+              >
+                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping" />
+                <span className="text-[10px] font-mono font-bold tracking-[0.2em] text-blue-400">VERSION_1.2.0_STABLE</span>
+              </motion.div>
+
+              <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-white mb-6 leading-[0.9]">
+                ACADEMIC<br />
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-white to-purple-400">COMMAND.</span>
               </h1>
-              <p className="text-slate-400 text-lg max-w-2xl mx-auto leading-relaxed">
-                CampusPilot AI is the professional operating system for modern scholars. 
-                Synchronize academics, finances, and wellbeing in one unified command center.
+              
+              <p className="text-slate-400 text-sm md:text-base max-w-xl mx-auto leading-relaxed mb-12 font-medium">
+                CampusPilot AI is a high-performance student operating system. 
+                Synchronize your curriculum, liquidity, and physiological telemetry in one professional interface.
               </p>
-            </motion.div>
 
-            <motion.div 
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-6"
-            >
-              <button 
-                onClick={() => { setAuthMode('signup'); setIsLandingPage(false); }}
-                className="w-full sm:w-auto px-10 py-5 bg-white text-slate-950 font-bold rounded-2xl hover:scale-105 transition-all shadow-2xl flex items-center justify-center gap-3"
-              >
-                <UserPlus size={20} />
-                Register for Trial
-              </button>
-              <button 
-                onClick={() => { setAuthMode('login'); setIsLandingPage(false); }}
-                className="w-full sm:w-auto px-10 py-5 bg-white/5 border border-white/10 text-white font-bold rounded-2xl hover:bg-white/10 transition-all flex items-center justify-center gap-3"
-              >
-                <LogIn size={20} />
-                Access Terminal
-              </button>
-            </motion.div>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
+                <button 
+                  onClick={() => { setAuthMode('signup'); setIsLandingPage(false); }}
+                  className="group relative w-full sm:min-w-[200px] px-8 py-4 bg-white text-slate-950 font-black rounded-xl hover:bg-slate-100 transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95 flex items-center justify-center gap-3"
+                >
+                  INITIALIZE ACCOUNT
+                  <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+                <button 
+                  onClick={() => { setAuthMode('login'); setIsLandingPage(false); }}
+                  className="w-full sm:min-w-[200px] px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 transition-all flex items-center justify-center gap-3 backdrop-blur-md active:scale-95"
+                >
+                  RESUME SESSION
+                </button>
+              </div>
 
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-              className="grid grid-cols-3 gap-8 pt-12"
-            >
-              {[
-                { icon: Shield, text: "Biometric Verified" },
-                { icon: Globe, text: "Global Coverage" },
-                { icon: Terminal, text: "Gemini Enhanced" }
-              ].map((item, i) => (
-                <div key={i} className="flex flex-col items-center gap-2 opacity-50">
-                  <item.icon size={20} className="text-blue-400" />
-                  <span className="text-[10px] font-mono tracking-widest uppercase">{item.text}</span>
-                </div>
-              ))}
-            </motion.div>
+              <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-12 w-full pt-12 border-t border-white/5">
+                {[
+                  { title: "PRECISION ANALYTICS", desc: "GPA forecasting and credit tracking." },
+                  { title: "LIQUIDITY CONTROL", desc: "Real-time expense stream monitoring." },
+                  { title: "NEURAL WELLBEING", desc: "Physiological focus state optimization." }
+                ].map((item, i) => (
+                  <div key={i} className="text-left space-y-2">
+                    <h3 className="text-[10px] font-black tracking-[0.2em] text-blue-500 font-mono italic">[{i + 1}] {item.title}</h3>
+                    <p className="text-[11px] text-slate-500 leading-relaxed font-medium uppercase">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </motion.div>
         ) : !showOnboarding ? (
           <motion.div 
             key="auth-modal"
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            className="glass p-10 max-w-md w-full text-center space-y-8 shadow-[0_0_50px_rgba(30,58,138,0.3)] relative"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="glass p-10 max-w-md w-full relative z-[110] shadow-2xl border border-white/10 backdrop-blur-3xl overflow-hidden"
           >
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 bg-[length:200%_auto] animate-gradient-shift" />
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-blue-500 to-transparent" />
             
             <button 
                onClick={() => setIsLandingPage(true)}
-               className="absolute top-4 left-4 text-slate-500 hover:text-white transition-colors text-[10px] font-mono uppercase tracking-widest"
+               className="mb-8 text-slate-500 hover:text-white transition-colors text-[9px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 group"
             >
-              ← Back
+              <div className="w-4 h-4 rounded-full border border-slate-700 flex items-center justify-center group-hover:border-white transition-colors">
+                <ChevronRight size={10} className="rotate-180" />
+              </div>
+              Back to Hub
             </button>
 
-            <div className="space-y-2 pb-2">
-              <div className="flex justify-center mb-2">
-                <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center gap-2">
-                  <div className="w-1 h-1 bg-blue-500 rounded-full animate-pulse" />
-                  <span className="text-[8px] font-mono uppercase tracking-[0.2em] text-blue-400">Node: {firebaseConfig.projectId.split('-').slice(-1)[0]}</span>
+
+            <div className="space-y-4 pb-4">
+              <div className="flex justify-center mb-4">
+                <div className="w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.15)] group-hover:scale-110 transition-transform">
+                  <Zap className="text-blue-400" size={32} />
                 </div>
               </div>
-              <h2 className="text-3xl font-extrabold tracking-tighter">
-                {authMode === 'login' ? 'System Login' : 'Register Account'}
+              <h2 className="text-3xl font-black tracking-tighter text-white">
+                {authMode === 'login' ? 'Welcome Back' : 'Join the Fleet'}
               </h2>
-              <div className="flex items-center justify-center gap-4">
+              <p className="text-slate-500 text-xs font-medium">
+                {authMode === 'login' 
+                  ? 'Access your unified academic command center.' 
+                  : 'Initialize your professional student OS terminal.'}
+              </p>
+              
+              <div className="flex p-1 bg-slate-900/50 rounded-xl border border-white/5 mt-6">
                 <button 
                   type="button"
                   onClick={() => setAuthMode('login')}
-                  className={cn("text-[10px] font-mono uppercase tracking-widest transition-colors", authMode === 'login' ? "text-blue-400" : "text-slate-600")}
+                  className={cn(
+                    "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
+                    authMode === 'login' ? "bg-blue-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
+                  )}
                 >
-                  Login
+                  Sign In
                 </button>
-                <div className="w-[1px] h-3 bg-slate-800" />
                 <button 
                   type="button"
                   onClick={() => setAuthMode('signup')}
-                  className={cn("text-[10px] font-mono uppercase tracking-widest transition-colors", authMode === 'signup' ? "text-blue-400" : "text-slate-600")}
+                  className={cn(
+                    "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
+                    authMode === 'signup' ? "bg-blue-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
+                  )}
                 >
-                  Sign Up
+                  Create Account
                 </button>
               </div>
             </div>
@@ -466,16 +482,19 @@ export const Auth: React.FC<AuthProps> = ({ onAuthenticated, onLogout, currentUs
         ) : (
           <motion.div 
             key="onboarding"
-            initial={{ opacity: 0, x: 50 }}
+            initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="glass p-10 max-w-md w-full space-y-6 shadow-2xl relative"
+            className="glass p-10 max-w-md w-full space-y-8 shadow-2xl relative z-[110] border border-white/10"
           >
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-blue-500 to-transparent" />
+            
             <div className="space-y-1">
-              <h2 className="text-2xl font-bold tracking-tight">Onboarding Sequence</h2>
-              <p className="text-slate-500 text-xs">Establish your academic identifiers for the system.</p>
+              <h2 className="text-2xl font-black italic tracking-tighter uppercase text-white">IDENTITY_SYNC</h2>
+              <p className="text-slate-500 text-[10px] uppercase font-mono tracking-widest">Establish research identifiers for academic terminal.</p>
             </div>
             
-            <form onSubmit={submitOnboarding} className="space-y-4">
+            <form onSubmit={submitOnboarding} className="space-y-6">
+
               <div className="space-y-4">
                 <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Academic Identity</label>
                 <div className="flex items-center gap-4">

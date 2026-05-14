@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Fingerprint, Settings, Upload, User, Zap, Globe, Plus, Trash2, ChevronRight, Menu, X, Loader2, LogOut, DollarSign, Activity, LayoutDashboard, BookOpen, Wallet, HeartPulse, Brain, Target } from 'lucide-react';
+import { Fingerprint, Settings, Upload, User, Zap, Globe, Plus, Trash2, ChevronRight, Menu, X, Loader2, LogOut, DollarSign, Activity, LayoutDashboard, BookOpen, Wallet, HeartPulse, Brain, Target, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from './lib/utils';
@@ -70,6 +70,30 @@ export default function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isNavVisible, setIsNavVisible] = useState(true);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    if (newTheme === 'light') {
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+    }
+  };
+
+  const handleReadAloud = (text: string) => {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.95;
+    utterance.pitch = 1.1;
+    // Attempt to pick a soft voice
+    const voices = window.speechSynthesis.getVoices();
+    const softVoice = voices.find(v => v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha'));
+    if (softVoice) utterance.voice = softVoice;
+    window.speechSynthesis.speak(utterance);
+  };
 
   // Auth & Sync
   useEffect(() => {
@@ -187,145 +211,62 @@ export default function App() {
         />
       ) : (
         <>
-      {/* Sidebar (Desktop) */}
-          <motion.aside 
-            initial={false}
-            animate={{ width: isSidebarOpen ? 260 : 80 }}
-            className="hidden md:flex bg-slate-900/50 backdrop-blur-3xl border-r border-white/5 flex-col z-[80] shrink-0 m-0 shadow-2xl overflow-hidden relative"
-          >
-            <div className="absolute inset-y-0 right-0 w-[1px] bg-gradient-to-b from-transparent via-blue-500/20 to-transparent" />
-            
-            <div className="p-6 flex flex-col gap-1 relative z-10">
-              <div className="flex items-center justify-between">
-                <div className={cn("flex flex-col transition-all duration-500", !isSidebarOpen && "sr-only opacity-0 -translate-x-4")}>
-                  <h1 className="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-400 to-slate-400">
-                    CAMPUSPILOT
-                  </h1>
-                  <div className="flex items-center gap-2">
-                    <div className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
-                    <p className="text-[8px] text-slate-500 font-mono tracking-[0.2em]">CORE_SYSTEM_ACTIVE</p>
-                  </div>
-                </div>
+          <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+            {/* Immersive Top Bar */}
+            <header className="sticky top-0 z-[100] glass border-x-0 border-t-0 border-b border-white/5 px-4 md:px-8 py-4 flex items-center justify-between shadow-2xl backdrop-blur-3xl">
+              <div className="flex items-center gap-4 md:gap-7">
                 <button 
-                  onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                  className="p-2 hover:bg-white/5 rounded-xl transition-all text-slate-400 hover:text-white hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="flex items-center gap-3 group transition-all"
                 >
-                  {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
-                </button>
-              </div>
-            </div>
-
-            <nav className="flex-1 px-4 py-4 space-y-1 relative z-10">
-              {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id as any)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-3.5 rounded-xl transition-all text-sm font-semibold group",
-                    activeTab === item.id 
-                      ? "bg-blue-600/10 text-blue-400 shadow-[inset_0_0_20px_rgba(37,99,235,0.05)] border border-blue-500/20" 
-                      : "text-slate-500 hover:bg-white/5 hover:text-slate-100"
-                  )}
-                >
-                  <item.icon size={20} className={cn("transition-transform group-hover:scale-110", activeTab === item.id ? "text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" : "text-slate-600")} />
-                  {isSidebarOpen && <span className="tracking-tight">{item.label}</span>}
-                  {activeTab === item.id && isSidebarOpen && (
-                    <motion.div layoutId="active-nav" className="ml-auto w-1 h-4 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
-                  )}
-                </button>
-              ))}
-            </nav>
-
-            <div className="p-4 border-t border-white/10 space-y-3">
-              <button 
-                onClick={handleAnalyze}
-                disabled={isAnalyzing}
-                className={cn(
-                  "w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold transition-all shadow-lg shadow-blue-900/20",
-                  isAnalyzing && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                {isAnalyzing ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <Zap size={18} fill="currentColor" />
-                )}
-                {isSidebarOpen && <span>{isAnalyzing ? 'Analyzing...' : 'Analyze Status'}</span>}
-              </button>
-              
-              <button 
-                onClick={() => {
-                  if(confirm("Are you sure you want to reset all data?")) {
-                    setState(INITIAL_STATE);
-                    setAiResponse(null);
-                    localStorage.removeItem('campuspilot_state');
-                  }
-                }}
-                className={cn(
-                  "w-full flex items-center justify-center gap-2 py-2 rounded-xl text-slate-500 hover:text-slate-300 hover:bg-white/5 text-xs font-mono transition-all",
-                  !isSidebarOpen && "sr-only opacity-0 whitespace-nowrap"
-                )}
-              >
-                <Trash2 size={14} />
-                <span>Reset Data</span>
-              </button>
-            </div>
-          </motion.aside>
-
-          {/* Bottom Nav (Mobile) */}
-          <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] glass border-t border-white/10 px-2 py-1 flex items-center justify-around shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id as any)}
-                className={cn(
-                  "flex flex-col items-center gap-1 p-2 rounded-xl transition-all",
-                  activeTab === item.id ? "text-blue-400 scale-110" : "text-slate-500"
-                )}
-              >
-                <item.icon size={22} />
-                <span className="text-[10px] font-bold uppercase">{item.label.substring(0, 4)}</span>
-              </button>
-            ))}
-            <button 
-              onClick={handleAnalyze}
-              disabled={isAnalyzing}
-              className={cn(
-                "p-3 rounded-full bg-blue-600 text-white shadow-lg -translate-y-4 border-4 border-slate-950 transition-all active:scale-90",
-                isAnalyzing && "animate-pulse"
-              )}
-            >
-              {isAnalyzing ? <Loader2 size={24} className="animate-spin" /> : <Zap size={24} fill="currentColor" />}
-            </button>
-          </nav>
-
-          {/* Main Content */}
-          <main className="flex-1 overflow-y-auto relative p-2 md:p-6 flex flex-col gap-4 pb-24 md:pb-6">
-            <header className="glass p-4 md:p-6 flex items-center justify-between border-white/5 shadow-xl">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <span className="status-pill bg-blue-500/20 text-blue-400">SYNCED</span>
-                  <span className="hidden xs:inline text-[10px] text-slate-500 font-mono italic">
-                    LATENCY: 12ms
-                  </span>
-                </div>
-                <h1 className="text-lg md:text-xl font-bold capitalize text-slate-100">{activeTab}</h1>
-              </div>
-              <div className="flex items-center gap-3 md:gap-6">
-                {state.subscription && (
-                  <div className={cn(
-                    "hidden sm:flex px-3 py-1 rounded-full text-[10px] font-bold tracking-widest border transition-all uppercase items-center gap-2",
-                    state.subscription.status === 'trial' ? "bg-amber-500/10 text-amber-500 border-amber-500/20" : "bg-green-500/10 text-green-500 border-green-500/20"
-                  )}>
-                    {state.subscription.status} Access
+                  <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:scale-110 group-hover:rotate-12 transition-all">
+                    <LayoutDashboard className="text-white" size={20} />
                   </div>
+                  <div className="flex flex-col text-left hidden sm:flex">
+                    <h1 className="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-400 to-slate-400">
+                      CAMPUSPILOT
+                    </h1>
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping" />
+                      <p className="text-[9px] text-slate-500 font-mono tracking-[0.2em]">TERMINAL_OS_v1.2</p>
+                    </div>
+                  </div>
+                </button>
+
+                {activeTab !== 'dashboard' && (
+                  <motion.button 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    onClick={() => setActiveTab('dashboard')}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[10px] font-black tracking-[0.15em] text-blue-400 hover:text-white hover:bg-blue-600 transition-all group"
+                  >
+                    <ChevronRight size={14} className="rotate-180 group-hover:-translate-x-0.5 transition-transform" />
+                    BACK_TO_HUB
+                  </motion.button>
                 )}
-                
+              </div>
+
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={toggleTheme}
+                  className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all active:scale-95"
+                  title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                >
+                  {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
+                <button 
+                  onClick={handleAnalyze}
+                  disabled={isAnalyzing}
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600/10 text-blue-400 border border-blue-500/20 hover:bg-blue-600/20 transition-all font-mono text-[10px] font-bold uppercase tracking-widest"
+                >
+                  <Zap size={14} fill="currentColor" className={isAnalyzing ? "animate-pulse" : ""} />
+                  {isAnalyzing ? "PROFILING..." : "SYNC_ANALYSIS"}
+                </button>
+
                 <div className="relative">
-                  <div className="absolute -inset-2 bg-blue-500/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-full" />
                   <button 
                     onClick={() => setIsProfileOpen(!isProfileOpen)}
-                    className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 overflow-hidden p-0.5 hover:border-blue-500/50 transition-all active:scale-95 flex items-center justify-center relative z-10 group"
+                    className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 overflow-hidden p-0.5 hover:border-blue-500/50 transition-all active:scale-95 flex items-center justify-center group"
                   >
                     <img className="rounded-lg w-full h-full object-cover" src={state.profile.profileImageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${state.profile.name}`} alt="avatar" />
                   </button>
@@ -333,53 +274,63 @@ export default function App() {
                   <AnimatePresence>
                     {isProfileOpen && (
                       <>
-                        <div className="fixed inset-0 z-[60]" onClick={() => setIsProfileOpen(false)} />
+                        <div className="fixed inset-0 z-[120]" onClick={() => setIsProfileOpen(false)} />
                         <motion.div 
                           initial={{ opacity: 0, y: 10, scale: 0.95 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                          className="absolute right-0 mt-3 w-56 glass z-[70] p-4 shadow-2xl space-y-4 border border-blue-500/20"
+                          className="absolute right-0 mt-3 w-64 glass z-[130] p-4 shadow-2xl space-y-4 border border-blue-500/20"
                         >
-                          <div className="space-y-4">
-                            <div className="relative p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-blue-500/20 overflow-hidden group shadow-2xl">
-                              <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 blur-2xl group-hover:bg-blue-500/10 transition-all" />
-                              <div className="flex items-center gap-3 mb-4">
-                                <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-                                  <User className="text-blue-400" size={20} />
-                                </div>
-                                <div className="space-y-0.5 min-w-0">
+                        <div className="space-y-4">
+                          <div className="relative p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-blue-500/20 overflow-hidden group shadow-2xl">
+                            <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 blur-2xl group-hover:bg-blue-500/10 transition-all" />
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 group/avatar relative overflow-hidden">
+                                <img className="w-full h-full object-cover" src={state.profile.profileImageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${state.profile.name}`} alt="avatar" />
+                                <button 
+                                  onClick={() => document.getElementById('profile-edit-upload')?.click()}
+                                  className="absolute inset-0 bg-black/60 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center text-white"
+                                >
+                                  <Upload size={14} />
+                                </button>
+                                <input 
+                                  id="profile-edit-upload"
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      const reader = new FileReader();
+                                      reader.onloadend = () => {
+                                        setState({...state, profile: {...state.profile, profileImageUrl: reader.result as string}});
+                                      };
+                                      reader.readAsDataURL(file);
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <div className="space-y-0.5 min-w-0">
                                   <p className="text-sm font-bold text-slate-100 truncate tracking-tight">{state.profile.name}</p>
                                   <p className="text-[9px] font-mono text-blue-500/80 uppercase tracking-widest truncate">Academic Operator</p>
                                 </div>
                               </div>
                               
-                              <div className="space-y-2">
-                                <div className="flex justify-between items-center text-[9px] font-mono text-slate-500">
-                                  <span className="uppercase">Institution</span>
-                                  <span className="text-slate-300 uppercase tracking-tighter truncate max-w-[120px]">{state.profile.university || 'NOT_SET'}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-[9px] font-mono text-slate-500">
-                                  <span className="uppercase">Region</span>
-                                  <span className="text-slate-300 uppercase tracking-tighter">{state.profile.country || 'GLOBAL'}</span>
-                                </div>
-                              </div>
-
                               <div className="mt-4 pt-4 border-t border-white/5">
                                 <button 
                                   onClick={() => { setIsEditingProfile(true); setIsProfileOpen(false); }}
                                   className="w-full py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all border border-blue-500/20"
                                 >
-                                  Sync Identifiers
+                                  Modify Identifiers
                                 </button>
                               </div>
                             </div>
-
                             <button 
                               onClick={handleLogout}
                               className="w-full flex items-center justify-between px-2 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 hover:text-red-400 transition-colors group"
                             >
                               Terminate Session
-                              <LogOut size={12} className="group-hover:translate-x-1 transition-transform" />
+                              <LogOut size={12} />
                             </button>
                           </div>
                         </motion.div>
@@ -389,6 +340,79 @@ export default function App() {
                 </div>
               </div>
             </header>
+
+            {/* Main Fullscreen Page Content */}
+            <main 
+              onClick={() => isSidebarOpen && setIsSidebarOpen(false)}
+              className="flex-1 overflow-y-auto relative p-4 md:p-10 flex flex-col gap-6 custom-scrollbar pb-32"
+            >
+              <AnimatePresence>
+                {isSidebarOpen && (
+                  <>
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => setIsSidebarOpen(false)}
+                      className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[150]"
+                    />
+                    <motion.div 
+                      initial={{ x: '-100%' }}
+                      animate={{ x: 0 }}
+                      exit={{ x: '-100%' }}
+                      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                      className="fixed top-0 left-0 bottom-0 w-72 md:w-80 glass z-[160] border-r border-white/10 shadow-2xl flex flex-col p-6 pt-10"
+                    >
+                      <div className="flex items-center gap-4 mb-12">
+                        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                          <LayoutDashboard className="text-white" size={20} />
+                        </div>
+                        <div>
+                          <h2 className="text-lg font-black text-white tracking-tighter leading-none">NAV_DRIVE</h2>
+                          <p className="text-[9px] font-mono text-slate-500 uppercase tracking-widest mt-1">System Navigation</p>
+                        </div>
+                      </div>
+
+                      <nav className="space-y-2">
+                        {navItems.map((item) => (
+                          <button
+                            key={item.id}
+                            onClick={() => {
+                              setActiveTab(item.id as any);
+                              setIsSidebarOpen(false);
+                            }}
+                            className={cn(
+                              "w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all text-[11px] font-black uppercase tracking-[0.2em] relative group",
+                              activeTab === item.id 
+                                ? "bg-blue-600 text-white shadow-xl shadow-blue-500/20" 
+                                : "text-slate-500 hover:bg-white/5 hover:text-white"
+                            )}
+                          >
+                            <item.icon size={18} className={activeTab === item.id ? "scale-110" : "group-hover:scale-110 transition-transform"} />
+                            {item.label}
+                            {activeTab === item.id && (
+                              <motion.div 
+                                layoutId="nav-active"
+                                className="absolute left-1 w-1 h-6 bg-white rounded-full"
+                              />
+                            )}
+                          </button>
+                        ))}
+                      </nav>
+
+                      <div className="mt-auto pt-6 border-t border-white/5">
+                        <div className="p-4 bg-blue-600/5 rounded-2xl border border-blue-500/10">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                            <p className="text-[10px] font-mono text-slate-400">SESSION_STABLE</p>
+                          </div>
+                          <p className="text-[9px] text-slate-600 uppercase leading-relaxed font-medium">Terminal environment operating at optimal efficiency.</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
 
 
         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
@@ -411,6 +435,23 @@ export default function App() {
                       🧭 Situation Overview: {aiResponse ? "Report ready for review." : "System idle. Sync telemetry."}
                     </h2>
                   </header>
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 pb-8">
+                    {navItems.filter(i => i.id !== 'dashboard').map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id as any)}
+                        className="glass flex flex-col items-center justify-center p-6 gap-3 hover:bg-blue-600 group transition-all active:scale-95 border-blue-500/10"
+                      >
+                        <div className="p-3 bg-white/5 rounded-2xl group-hover:bg-white/20 transition-colors">
+                          <item.icon size={24} className="group-hover:scale-110 transition-transform" />
+                        </div>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 group-hover:text-white">
+                          {item.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {/* Academics Card */}
@@ -532,8 +573,28 @@ export default function App() {
                   )}
 
                   {aiResponse && !isAnalyzing && (
-                    <div className="glass p-8 markdown-body prose prose-invert max-w-none shadow-2xl">
-                      <ReactMarkdown>{aiResponse}</ReactMarkdown>
+                    <div className="glass p-8 shadow-2xl">
+                      <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-6">
+                        <div className="flex items-center gap-3">
+                          <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                            <Zap className="text-blue-400" size={20} />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-100">Intelligent Analysis Report</h3>
+                            <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">COGNITIVE_SUMMARY_GENERATED</p>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => handleReadAloud(aiResponse)}
+                          className="px-4 py-2.5 rounded-xl bg-blue-600/10 text-blue-400 border border-blue-500/20 hover:bg-blue-600/20 transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest active:scale-95 group shadow-lg shadow-blue-900/20"
+                        >
+                          <Activity size={14} className="group-hover:scale-110 transition-transform" /> 
+                          Play Audio Report
+                        </button>
+                      </div>
+                      <div className="markdown-body prose prose-invert max-w-none">
+                        <ReactMarkdown>{aiResponse}</ReactMarkdown>
+                      </div>
                     </div>
                   )}
                 </motion.div>
@@ -1197,6 +1258,7 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
+          </div>
       {user && <Chatbot />}
       </>
       )}
