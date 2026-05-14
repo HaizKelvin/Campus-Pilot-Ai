@@ -1,0 +1,48 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores student data and subscription status",
+      "type": "object",
+      "properties": {
+        "profile": { "type": "object" },
+        "academics": { "type": "object" },
+        "finance": { "type": "object" },
+        "health": { "type": "object" },
+        "wellbeing": { "type": "object" },
+        "subscription": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["trial", "active", "expired"] },
+            "startDate": { "type": "string", "format": "date-time" }
+          }
+        },
+        "webauthnCredentials": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      },
+      "required": ["profile"]
+    },
+    "Chat": {
+      "title": "Chat Message",
+      "description": "Conversation history with CampusPilot AI",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "All student telemetry data indexed by UID"
+    },
+    "/users/{userId}/chats/{chatId}": {
+      "schema": "Chat",
+      "description": "Individual chat messages for the student"
+    }
+  }
+}
